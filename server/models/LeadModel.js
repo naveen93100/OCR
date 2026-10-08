@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 
 
 const leadSchema = mongoose.Schema({
-   executivePersonId: {
+   executiveUserId: {
       type: String,
       required: true
    },
@@ -25,11 +25,13 @@ const leadSchema = mongoose.Schema({
    },
    email: {
       type: String,
-      trim: true
+      trim: true,
+      unique: true
    },
    mobileNo: {
       type: String,
-      trim: true
+      trim: true,
+      unique: true,
    }
 
 }, { timestamps: true });

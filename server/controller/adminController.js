@@ -1,5 +1,55 @@
+import Lead from "../models/LeadModel.js";
 import User from "../models/userModel.js";
 
+
+export const getDashBoardData = async (req, res) => {
+    try {
+
+        let executives = await User.aggregate([
+            {
+                $match: {
+                    role: 'executive'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'leads',
+                    localField: 'userId',
+                    foreignField: 'executiveUserId',
+                    as: "leads"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    role: 1,
+                    userId: 1,
+                    leads: {
+                        $map: {
+                            input: "$leads",
+                            as: "lead",
+                            in: {
+                                _id: "$$lead._id",
+                                customerName: "$$lead.customerName",
+                                city: "$$lead.city",
+                                requirement: "$$lead.requirement",
+                                mobileNo: "$$lead.mobileNo",
+                                email: "$$lead.email",
+                                createdAt:"$$lead.createdAt"
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+
+        return res.status(200).json({ success: true, executives });
+
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}
 
 export const createAdmin = async (req, res) => {
     try {

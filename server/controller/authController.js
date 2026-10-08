@@ -24,7 +24,7 @@ export const login = async (req, res) => {
 
         return res.cookie('refreshToken',
             refresh_token, { httpOnly: true, secure: false, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 })
-            .cookie('accessToken', access_token, { httpOnly: true, secure: false, sameStime: "strict", maxAge: 15 * 60 * 1000 }).status(200).json({ success: true, access_token })
+            .cookie('accessToken', access_token, { httpOnly: true, secure: false, sameStime: "strict", maxAge: 15 * 60 * 1000 }).status(200).json({ success: true, access_token, userData: { _id: user._id, role: user.role, userId: user.userId } });
 
     } catch (er) {
         return res.status(500).json({ success: false, message: er?.message });
