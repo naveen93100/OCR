@@ -2,6 +2,23 @@ import { openAi } from '../config/openAi.js';
 import sharp from 'sharp';
 import Lead from '../models/LeadModel.js'
 
+export const getLeadHistory = async (req, res) => {
+    try {
+        let { userId } = req.user;
+
+        if (!userId) return res.status(400).json({ success: false, message: "Id not found.." });
+
+        let leads = await Lead.find({
+            executiveUserId: userId,
+        })
+
+        return res.status(200).json({ success: true, history: leads });
+
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}
+
 export const scanCard = async (req, res) => {
     try {
 
@@ -99,7 +116,7 @@ export const createLead = async (req, res) => {
         if (email) createLead.email = email;
         if (mobileNo) createLead.mobileNo = mobileNo;
 
-        createLead.executivePersonId = userId;
+        createLead.executiveUserId = userId;
 
         let savedLead = await Lead.create(createLead);
 

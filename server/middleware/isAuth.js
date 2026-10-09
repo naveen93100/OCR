@@ -4,7 +4,6 @@ export const isAuth = (req, res, next) => {
     try {
 
         const token = req.cookies.accessToken;
-        console.log(token);
 
         if (!token) {
             return res.status(401).json({
@@ -17,6 +16,8 @@ export const isAuth = (req, res, next) => {
             token,
             process.env.ACCESS_TOKEN_SECRET
         );
+
+        if(decoded?.role!=='executive') return res.status(403).json({success:false,message:"Access denied.."});
 
         req.user = decoded;
 
