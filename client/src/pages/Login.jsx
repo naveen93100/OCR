@@ -1,408 +1,550 @@
-// import { useState } from "react";
+// import { useState, useEffect } from "react";
 // import { useLocation, useNavigate } from "react-router-dom";
+// import { ROLE_HOME } from "../routes/RoleRedirect";
 // import {
-//   ArrowRight,
-//   Eye,
-//   EyeOff,
-//   FileText,
-//   Languages,
-//   Loader2,
-//   Lock,
-//   ScanLine,
-//   ShieldCheck,
-//   User,
-//   Zap,
+//     ArrowRight,
+//     Eye,
+//     EyeOff,
+//     Loader2,
+//     Lock,
+//     ScanLine,
+//     Shield,
+//     ShieldCheck,
+//     Zap,
+//     FileText,
+//     User,
+//     TriangleAlert,
 // } from "lucide-react";
 // import toast from "react-hot-toast";
 // import clsx from "clsx";
 // import { useAuth } from "../context/AuthContext";
 
+// /* ------------------------------------------------------------------ */
+// /* Reusable pieces                                                     */
+// /* ------------------------------------------------------------------ */
+
+// const Logo = ({ dark = false, className = "" }) => (
+//     <div className={clsx("flex items-center gap-3", className)}>
+//         <div className="relative">
+//             <div className="absolute inset-0 rounded-xl bg-red-500/40 blur-lg" />
+//             <div
+//                 className={clsx(
+//                     "relative flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm sm:h-11 sm:w-11",
+//                     dark
+//                         ? "border-white/15 bg-white/10 backdrop-blur"
+//                         : "border-red-200 bg-white",
+//                 )}
+//             >
+//                 <ScanLine
+//                     className={clsx(
+//                         "h-5 w-5 sm:h-6 sm:w-6",
+//                         dark ? "text-red-400" : "text-red-600",
+//                     )}
+//                 />
+//             </div>
+//         </div>
+//         <span
+//             className={clsx(
+//                 "text-xl font-bold tracking-tight sm:text-2xl",
+//                 dark ? "text-white" : "text-slate-900",
+//             )}
+//         >
+//             OCR<span className="text-red-500">.</span>dev
+//         </span>
+//     </div>
+// );
+
+// const Field = ({ id, label, icon: Icon, error, right, hint, ...props }) => (
+//     <div>
+//         <div className="mb-1.5 flex items-center justify-between sm:mb-2">
+//             <label
+//                 htmlFor={id}
+//                 className="block text-xs font-semibold uppercase tracking-wider text-slate-500"
+//             >
+//                 {label}
+//             </label>
+//         </div>
+
+//         <div
+//             className={clsx(
+//                 "group relative flex items-center rounded-xl border bg-white transition",
+//                 "focus-within:ring-4",
+//                 error
+//                     ? "border-red-400 focus-within:border-red-500 focus-within:ring-red-500/10"
+//                     : "border-slate-200 hover:border-slate-300 focus-within:border-red-500 focus-within:ring-red-500/10",
+//             )}
+//         >
+//             <span
+//                 className={clsx(
+//                     "flex h-12 w-11 shrink-0 items-center justify-center sm:w-12",
+//                     error
+//                         ? "text-red-500"
+//                         : "text-slate-400 group-focus-within:text-red-500",
+//                 )}
+//             >
+//                 <Icon className="h-4 w-4" strokeWidth={2} />
+//             </span>
+
+//             <input
+//                 id={id}
+//                 name={id}
+//                 aria-invalid={!!error}
+//                 aria-describedby={
+//                     error ? `${id}-error` : hint ? `${id}-hint` : undefined
+//                 }
+//                 className={clsx(
+//                     // text-base on mobile prevents iOS zoom on focus
+//                     "h-12 w-full min-w-0 bg-transparent pr-3 text-base text-slate-900 outline-none sm:text-sm",
+//                     "placeholder:font-normal placeholder:text-slate-400",
+//                 )}
+//                 {...props}
+//             />
+
+//             {right && (
+//                 <span className="flex h-12 w-11 shrink-0 items-center justify-center sm:w-12">
+//                     {right}
+//                 </span>
+//             )}
+//         </div>
+
+//         {error ? (
+//             <p
+//                 id={`${id}-error`}
+//                 role="alert"
+//                 className="mt-1.5 text-xs font-medium text-red-500"
+//             >
+//                 {error}
+//             </p>
+//         ) : hint ? (
+//             <p
+//                 id={`${id}-hint`}
+//                 className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-600"
+//             >
+//                 <TriangleAlert className="h-3.5 w-3.5" />
+//                 {hint}
+//             </p>
+//         ) : null}
+//     </div>
+// );
+
 // const features = [
-//   { icon: Zap, title: "Lightning fast", text: "Extract text from images and PDFs in seconds." },
-//   { icon: Languages, title: "Multi-language", text: "Accurate recognition across many languages." },
-//   { icon: ShieldCheck, title: "Secure by design", text: "Your documents stay private and protected." },
+//     {
+//         icon: Zap,
+//         title: "Lightning-fast extraction",
+//         text: "Turn documents into structured data in seconds.",
+//     },
+//     {
+//         icon: FileText,
+//         title: "Every format, one place",
+//         text: "Invoices, IDs, forms and more — all handled together.",
+//     },
+//     {
+//         icon: ShieldCheck,
+//         title: "Enterprise-grade security",
+//         text: "Your data stays encrypted, in transit and at rest.",
+//     },
 // ];
 
-// /* ---------- Brand logo ---------- */
-// const Logo = ({ light = false }) => (
-//   <div className="flex items-center gap-3">
-//     <div
-//       className={clsx(
-//         "flex h-11 w-11 items-center justify-center rounded-xl shadow-lg",
-//         light
-//           ? "bg-white/15 text-white ring-1 ring-white/30 backdrop-blur"
-//           : "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-600/30"
-//       )}
-//     >
-//       <ScanLine className="h-6 w-6" />
-//     </div>
-//     <div className="leading-tight">
-//       <p className={clsx("text-lg font-bold tracking-tight", light ? "text-white" : "text-gray-900")}>
-//         OCR Scanner
-//       </p>
-//       <p className={clsx("text-xs", light ? "text-blue-100" : "text-gray-500")}>
-//         Smart document recognition
-//       </p>
-//     </div>
-//   </div>
-// );
-
-// /* ---------- Animated document-scan illustration ---------- */
-// const ScanIllustration = () => (
-//   <div className="relative mx-auto w-full max-w-xs">
-//     <div className="absolute -inset-6 rounded-full bg-white/10 blur-3xl" />
-//     <div className="relative rounded-2xl bg-white p-5 shadow-2xl shadow-indigo-900/40">
-//       <div className="mb-4 flex items-center gap-2">
-//         <FileText className="h-4 w-4 text-blue-600" />
-//         <span className="text-xs font-semibold text-gray-700">invoice_2026.pdf</span>
-//         <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-//           Scanning
-//         </span>
-//       </div>
-
-//       <div className="relative space-y-2.5 overflow-hidden rounded-lg bg-gray-50 p-4">
-//         {[100, 92, 78, 100, 64, 88, 55].map((w, i) => (
-//           <div key={i} className="h-2 rounded-full bg-gray-200" style={{ width: `${w}%` }} />
-//         ))}
-//         <span className="absolute left-2 top-2 h-4 w-4 rounded-tl-md border-l-2 border-t-2 border-blue-600" />
-//         <span className="absolute right-2 top-2 h-4 w-4 rounded-tr-md border-r-2 border-t-2 border-blue-600" />
-//         <span className="absolute bottom-2 left-2 h-4 w-4 rounded-bl-md border-b-2 border-l-2 border-blue-600" />
-//         <span className="absolute bottom-2 right-2 h-4 w-4 rounded-br-md border-b-2 border-r-2 border-blue-600" />
-//         <div className="ocr-scan absolute inset-x-0 h-10 bg-gradient-to-b from-transparent via-blue-500/30 to-transparent">
-//           <div className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-500 shadow-[0_0_12px_2px_rgba(59,130,246,0.8)]" />
-//         </div>
-//       </div>
-
-//       <div className="mt-4 flex items-center justify-between text-[11px] text-gray-500">
-//         <span>Detected text</span>
-//         <span className="font-semibold text-gray-800">98.7% accuracy</span>
-//       </div>
-//     </div>
-//   </div>
-// );
-
-// /* ---------- Reusable input field ---------- */
-// const Field = ({ id, label, icon: Icon, error, right, className, ...props }) => (
-//   <div className="space-y-2">
-//     <label htmlFor={id} className="block text-sm font-semibold text-gray-800">
-//       {label}
-//     </label>
-//     <div className="group relative">
-//       <span
-//         className={clsx(
-//           "pointer-events-none absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg transition",
-//           error
-//             ? "bg-red-100 text-red-500"
-//             : "bg-white text-gray-400 shadow-sm ring-1 ring-gray-200 group-focus-within:bg-blue-600 group-focus-within:text-white group-focus-within:ring-blue-600"
-//         )}
-//       >
-//         <Icon className="h-4 w-4" />
-//       </span>
-//       <input
-//         id={id}
-//         name={id}
-//         aria-invalid={!!error}
-//         className={clsx(
-//           "h-13 w-full rounded-xl border-2 py-3.5 pl-14 pr-12 text-sm font-medium text-gray-900 placeholder-gray-400 outline-none transition",
-//           error
-//             ? "border-red-300 bg-red-50/60 focus:border-red-500 focus:ring-4 focus:ring-red-100"
-//             : "border-transparent bg-gray-100 hover:bg-gray-200/70 focus:border-blue-600 focus:bg-white focus:ring-4 focus:ring-blue-100",
-//           className
-//         )}
-//         {...props}
-//       />
-//       {right}
-//     </div>
-//     {error && (
-//       <p className="flex items-center gap-1 text-xs font-medium text-red-600" role="alert">
-//         <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500" />
-//         {error}
-//       </p>
-//     )}
-//   </div>
-// );
+// /* ------------------------------------------------------------------ */
+// /* Page                                                                */
+// /* ------------------------------------------------------------------ */
 
 // const Login = () => {
-//   const { login } = useAuth();
-//   const navigate = useNavigate();
-//   const location = useLocation();
-//   const redirectTo = location.state?.from?.pathname || "/dashboard";
+//     const { login, isAuthenticated, user } = useAuth();
+//     const navigate = useNavigate();
+//     const location = useLocation();
 
-//   const [form, setForm] = useState({ userId: "", password: "" });
-//   const [errors, setErrors] = useState({});
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [loading, setLoading] = useState(false);
+//     const [form, setForm] = useState({ userId: "", password: "" });
+//     const [errors, setErrors] = useState({});
+//     const [showPassword, setShowPassword] = useState(false);
+//     const [capsLock, setCapsLock] = useState(false);
+//     const [loading, setLoading] = useState(false);
 
-//   const handleChange = (e) => {
-//     const { name, value } = e.target;
-//     setForm((prev) => ({ ...prev, [name]: value }));
-//     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
-//   };
+//     // Single place for navigation: runs as soon as auth state is set
+//     useEffect(() => {
+//         if (!isAuthenticated) return;
 
-//   const validate = () => {
-//     const next = {};
-//     if (!form.userId.trim()) next.userId = "User ID is required";
-//     if (!form.password) next.password = "Password is required";
-//     setErrors(next);
-//     return Object.keys(next).length === 0;
-//   };
+//         const from = location.state?.from?.pathname;
+//         const target =
+//             (from && from !== "/login" ? from : null) ||
+//             ROLE_HOME[user?.role] ||
+//             "/";
 
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     if (!validate()) return;
+//         navigate(target, { replace: true });
+//     }, [isAuthenticated, user, navigate, location.state]);
 
-//     try {
-//       setLoading(true);
-//       await login(form.userId.trim(), form.password);
-//       toast.success("Logged in successfully");
-//       navigate(redirectTo, { replace: true });
-//     } catch (err) {
-//       toast.error(err.response?.data?.message || "Something went wrong. Try again.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+//     const handleChange = (e) => {
+//         const { name, value } = e.target;
+//         setForm((p) => ({ ...p, [name]: value }));
+//         if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+//     };
 
-//   return (
-//     <div className="grid min-h-screen lg:grid-cols-2">
-//       <style>{`
-//         .h-13 { height: 3.25rem; }
-//         @keyframes ocr-scan { 0% { top: -2.5rem; } 100% { top: 100%; } }
-//         .ocr-scan { animation: ocr-scan 2.8s ease-in-out infinite alternate; }
-//         @keyframes ocr-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-//         .ocr-float { animation: ocr-float 5s ease-in-out infinite; }
-//         @keyframes ocr-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-//         .ocr-rise { animation: ocr-rise .5s ease-out both; }
-//         @media (prefers-reduced-motion: reduce) { .ocr-scan, .ocr-float, .ocr-rise { animation: none; } }
-//       `}</style>
+//     const handleCaps = (e) => {
+//         if (e.getModifierState) setCapsLock(e.getModifierState("CapsLock"));
+//     };
 
-//       {/* ============ Brand panel (desktop) ============ */}
-//       <aside className="relative hidden overflow-hidden bg-gradient-to-br from-blue-700 via-indigo-700 to-violet-800 p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-14">
-//         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-blue-400/30 blur-3xl" />
-//         <div className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-violet-400/30 blur-3xl" />
-//         <div
-//           className="pointer-events-none absolute inset-0 opacity-[0.07]"
-//           style={{
-//             backgroundImage:
-//               "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-//             backgroundSize: "32px 32px",
-//           }}
-//         />
+//     const validate = () => {
+//         const next = {};
+//         if (!form.userId.trim()) next.userId = "User ID is required";
+//         if (!form.password) next.password = "Password is required";
+//         setErrors(next);
+//         return !Object.keys(next).length;
+//     };
 
-//         <div className="relative">
-//           <Logo light />
-//         </div>
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
+//         if (loading || !validate()) return;
 
-//         <div className="relative space-y-10">
-//           <div className="ocr-float">
-//             <ScanIllustration />
-//           </div>
+//         try {
+//             setLoading(true);
+//             await login(form.userId.trim(), form.password);
+//             toast.success("Logged in successfully");
+//             // navigation handled by the useEffect above
+//         } catch (err) {
+//             toast.error(
+//                 err.response?.data?.message ||
+//                     err.message ||
+//                     "Something went wrong.",
+//             );
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
 
-//           <div className="space-y-3">
-//             <h1 className="text-3xl font-bold leading-tight xl:text-4xl">
-//               Turn any document into
-//               <span className="block text-blue-200">searchable, editable text.</span>
-//             </h1>
-//             <p className="max-w-md text-sm text-blue-100">
-//               Upload, scan and extract — accurate OCR built for teams that move fast.
-//             </p>
-//           </div>
+//     return (
+//         <div className="grid min-h-screen bg-white text-slate-900 lg:grid-cols-[1.05fr_1fr]">
+//             {/* ============ Brand panel (desktop / large tablet only) ============ */}
+//             <aside className="relative hidden overflow-hidden bg-slate-950 lg:flex">
+//                 <div
+//                     className="pointer-events-none absolute inset-0 opacity-[0.07]"
+//                     style={{
+//                         backgroundImage:
+//                             "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+//                         backgroundSize: "44px 44px",
+//                     }}
+//                 />
+//                 <div className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full bg-red-600/30 blur-[120px]" />
+//                 <div className="pointer-events-none absolute -bottom-32 right-0 h-96 w-96 rounded-full bg-red-500/20 blur-[130px]" />
 
-//           <ul className="space-y-4">
-//             {features.map(({ icon: Icon, title, text }) => (
-//               <li key={title} className="flex items-start gap-3">
-//                 <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20 backdrop-blur">
-//                   <Icon className="h-4 w-4" />
-//                 </span>
-//                 <div>
-//                   <p className="text-sm font-semibold">{title}</p>
-//                   <p className="text-xs text-blue-100">{text}</p>
+//                 <div className="relative flex w-full flex-col justify-between p-10 xl:p-14">
+//                     <Logo dark />
+
+//                     <div className="max-w-lg">
+//                         <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 backdrop-blur">
+//                             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+//                             Secure Access Portal
+//                         </span>
+
+//                         <h2 className="mt-6 text-4xl font-bold leading-tight tracking-tight text-white xl:text-5xl">
+//                             Welcome back.
+//                             <br />
+//                             <span className="bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
+//                                 Let&apos;s get to work.
+//                             </span>
+//                         </h2>
+//                         <p className="mt-4 text-base text-slate-400 xl:text-lg">
+//                             Sign in to manage your documents, review extractions
+//                             and keep your workflow moving.
+//                         </p>
+
+//                         <ul className="mt-10 space-y-5">
+//                             {features.map(({ icon: Icon, title, text }) => (
+//                                 <li
+//                                     key={title}
+//                                     className="flex items-start gap-4"
+//                                 >
+//                                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-red-400">
+//                                         <Icon className="h-5 w-5" />
+//                                     </span>
+//                                     <div>
+//                                         <p className="text-sm font-semibold text-white">
+//                                             {title}
+//                                         </p>
+//                                         <p className="text-sm text-slate-400">
+//                                             {text}
+//                                         </p>
+//                                     </div>
+//                                 </li>
+//                             ))}
+//                         </ul>
+//                     </div>
+
+//                     <p className="text-xs text-slate-500">
+//                         © {new Date().getFullYear()} OCR.dev — All rights
+//                         reserved.
+//                     </p>
 //                 </div>
-//               </li>
-//             ))}
-//           </ul>
+//             </aside>
+
+//             {/* ============ Form side ============ */}
+//             <main className="relative flex min-h-screen flex-col overflow-hidden">
+//                 <div
+//                     className="pointer-events-none absolute inset-0 opacity-30 sm:opacity-40"
+//                     style={{
+//                         backgroundImage:
+//                             "linear-gradient(rgba(226,232,240,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(226,232,240,0.6) 1px, transparent 1px)",
+//                         backgroundSize: "48px 48px",
+//                     }}
+//                 />
+//                 <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-[80vw] max-w-[600px] -translate-x-1/2 rounded-full bg-red-500/10 blur-[100px] sm:h-96 sm:blur-[120px]" />
+//                 <div className="pointer-events-none absolute bottom-0 right-0 h-56 w-[70vw] max-w-[400px] rounded-full bg-red-600/10 blur-[80px] sm:h-72 sm:blur-[100px]" />
+
+//                 {/* Mobile / tablet logo bar */}
+//                 <header className="relative flex items-center justify-center px-4 pt-8 sm:pt-10 lg:hidden">
+//                     <Logo />
+//                 </header>
+
+//                 {/* Centered form */}
+//                 <div className="relative flex flex-1 items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
+//                     <div className="w-full max-w-sm sm:max-w-md">
+//                         <div className="mb-6 text-center sm:mb-8 lg:text-left">
+//                             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-red-600 sm:text-xs lg:hidden">
+//                                 Secure Access Portal
+//                             </p>
+//                             <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl lg:mt-0">
+//                                 Sign in to your account
+//                             </h1>
+//                             <p className="mt-2 text-sm text-slate-500">
+//                                 Enter your credentials to continue.
+//                             </p>
+//                         </div>
+
+//                         {/* Card */}
+//                         <div className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-8">
+//                             <div className="absolute inset-x-0 -top-px mx-auto h-px w-3/4 bg-gradient-to-r from-transparent via-red-500 to-transparent" />
+
+//                             <form
+//                                 onSubmit={handleSubmit}
+//                                 noValidate
+//                                 className="space-y-4 sm:space-y-5"
+//                             >
+//                                 <Field
+//                                     id="userId"
+//                                     label="User ID"
+//                                     icon={User}
+//                                     value={form.userId}
+//                                     onChange={handleChange}
+//                                     placeholder="Enter your user ID"
+//                                     autoComplete="username"
+//                                     autoCapitalize="none"
+//                                     autoCorrect="off"
+//                                     spellCheck={false}
+//                                     error={errors.userId}
+//                                 />
+
+//                                 <Field
+//                                     id="password"
+//                                     label="Password"
+//                                     icon={Lock}
+//                                     type={showPassword ? "text" : "password"}
+//                                     value={form.password}
+//                                     onChange={handleChange}
+//                                     onKeyUp={handleCaps}
+//                                     onKeyDown={handleCaps}
+//                                     onBlur={() => setCapsLock(false)}
+//                                     placeholder="Enter your password"
+//                                     autoComplete="current-password"
+//                                     error={errors.password}
+//                                     hint={
+//                                         capsLock ? "Caps Lock is on" : undefined
+//                                     }
+//                                     right={
+//                                         <button
+//                                             type="button"
+//                                             aria-label={
+//                                                 showPassword
+//                                                     ? "Hide password"
+//                                                     : "Show password"
+//                                             }
+//                                             aria-pressed={showPassword}
+//                                             onClick={() =>
+//                                                 setShowPassword((s) => !s)
+//                                             }
+//                                             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+//                                         >
+//                                             {showPassword ? (
+//                                                 <EyeOff className="h-4 w-4" />
+//                                             ) : (
+//                                                 <Eye className="h-4 w-4" />
+//                                             )}
+//                                         </button>
+//                                     }
+//                                 />
+
+//                                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs">
+//                                     <label className="flex cursor-pointer items-center gap-2 text-slate-500">
+//                                         <input
+//                                             type="checkbox"
+//                                             className="h-4 w-4 rounded border-slate-300 bg-white text-red-600 focus:ring-red-500"
+//                                         />
+//                                         Remember device
+//                                     </label>
+//                                     <a
+//                                         href="#"
+//                                         className="font-medium text-red-600 hover:text-red-500 hover:underline"
+//                                     >
+//                                         Reset access
+//                                     </a>
+//                                 </div>
+
+//                                 <button
+//                                     type="submit"
+//                                     disabled={loading}
+//                                     className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-red-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/25 transition hover:bg-red-500 focus:outline-none focus:ring-4 focus:ring-red-500/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+//                                 >
+//                                     {loading ? (
+//                                         <>
+//                                             <Loader2 className="h-4 w-4 animate-spin" />
+//                                             Authenticating...
+//                                         </>
+//                                     ) : (
+//                                         <>
+//                                             Authenticate
+//                                             <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+//                                         </>
+//                                     )}
+//                                 </button>
+//                             </form>
+
+//                             <div className="mt-5 flex items-center gap-3 border-t border-slate-100 pt-5 sm:mt-6 sm:pt-6">
+//                                 <Shield className="h-4 w-4 shrink-0 text-red-500" />
+//                                 <p className="text-xs text-slate-400">
+//                                     Protected by AES-256 encryption
+//                                 </p>
+//                             </div>
+//                         </div>
+//                     </div>
+//                 </div>
+
+//                 {/* Footer */}
+//                 <footer className="relative flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 pb-6 text-xs text-slate-400 sm:pb-8">
+//                     <a href="#" className="hover:text-red-600">
+//                         Privacy
+//                     </a>
+//                     <span aria-hidden="true">•</span>
+//                     <a href="#" className="hover:text-red-600">
+//                         Terms
+//                     </a>
+//                     <span aria-hidden="true">•</span>
+//                     <a href="#" className="hover:text-red-600">
+//                         Status
+//                     </a>
+//                 </footer>
+//             </main>
 //         </div>
-
-//         <p className="relative text-xs text-blue-200">
-//           © {new Date().getFullYear()} OCR Scanner. All rights reserved.
-//         </p>
-//       </aside>
-
-//       {/* ============ Login panel ============ */}
-//       <main className="flex min-h-screen flex-col bg-white">
-//         {/* Mobile / tablet header */}
-//         <header className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-indigo-700 to-violet-800 px-6 pb-16 pt-10 text-white sm:px-10 lg:hidden">
-//           <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
-//           <div className="pointer-events-none absolute -bottom-12 left-1/3 h-40 w-40 rounded-full bg-violet-300/20 blur-2xl" />
-//           <div
-//             className="pointer-events-none absolute inset-0 opacity-[0.07]"
-//             style={{
-//               backgroundImage:
-//                 "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-//               backgroundSize: "28px 28px",
-//             }}
-//           />
-//           <div className="relative mx-auto max-w-sm space-y-4 sm:max-w-md">
-//             <Logo light />
-//             <p className="text-sm text-blue-100">
-//               Scan, extract and manage your documents in one place.
-//             </p>
-//           </div>
-//         </header>
-
-//         {/* Form sheet */}
-//         <div className="relative -mt-8 flex flex-1 items-start justify-center rounded-t-[2rem] bg-white px-6 pb-10 pt-9 shadow-[0_-12px_30px_-12px_rgba(30,64,175,0.25)] sm:px-10 lg:mt-0 lg:items-center lg:rounded-none lg:px-12 lg:pb-0 lg:pt-0 lg:shadow-none">
-//           <div className="ocr-rise w-full max-w-sm sm:max-w-md">
-//             <div className="mb-8 space-y-2">
-//               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
-//                 <ScanLine className="h-3.5 w-3.5" />
-//                 OCR Dashboard
-//               </span>
-//               <h2 className="text-3xl font-bold tracking-tight text-gray-900">Welcome back</h2>
-//               <p className="text-sm text-gray-500">
-//                 Enter your credentials to access your account.
-//               </p>
-//             </div>
-
-//             <form onSubmit={handleSubmit} noValidate className="space-y-5">
-//               <Field
-//                 id="userId"
-//                 label="User ID"
-//                 icon={User}
-//                 value={form.userId}
-//                 onChange={handleChange}
-//                 placeholder="Enter your user ID"
-//                 autoComplete="username"
-//                 error={errors.userId}
-//               />
-
-//               <Field
-//                 id="password"
-//                 label="Password"
-//                 icon={Lock}
-//                 type={showPassword ? "text" : "password"}
-//                 value={form.password}
-//                 onChange={handleChange}
-//                 placeholder="Enter your password"
-//                 autoComplete="current-password"
-//                 error={errors.password}
-//                 right={
-//                   <button
-//                     type="button"
-//                     onClick={() => setShowPassword((s) => !s)}
-//                     aria-label={showPassword ? "Hide password" : "Show password"}
-//                     className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-200 hover:text-gray-700"
-//                   >
-//                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-//                   </button>
-//                 }
-//               />
-
-//               <button
-//                 type="submit"
-//                 disabled={loading}
-//                 className="group mt-2 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-700 hover:shadow-blue-600/40 focus:outline-none focus:ring-4 focus:ring-blue-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-//               >
-//                 {loading ? (
-//                   <>
-//                     <Loader2 className="h-4 w-4 animate-spin" />
-//                     Logging in...
-//                   </>
-//                 ) : (
-//                   <>
-//                     Login
-//                     <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-//                   </>
-//                 )}
-//               </button>
-//             </form>
-
-//             <div className="mt-8 flex items-center gap-3 rounded-xl bg-gray-50 p-3.5 ring-1 ring-gray-100">
-//               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-//                 <ShieldCheck className="h-4 w-4" />
-//               </span>
-//               <p className="text-xs leading-relaxed text-gray-500">
-//                 Your session is protected with secure authentication. Never share your password.
-//               </p>
-//             </div>
-
-//             <p className="mt-6 text-center text-xs text-gray-400 lg:hidden">
-//               © {new Date().getFullYear()} OCR Scanner
-//             </p>
-//           </div>
-//         </div>
-//       </main>
-//     </div>
-//   );
+//     );
 // };
 
 // export default Login;
 
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
     ArrowRight,
     Eye,
     EyeOff,
+    Loader2,
     Lock,
     ScanLine,
     Shield,
     User,
-    Zap,
+    TriangleAlert,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import clsx from "clsx";
-import { useAuth } from "../context/AuthContext";
 
-const Field = ({ id, label, icon: Icon, error, right, ...props }) => (
-    <div className="space-y-2">
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+const ROLE_HOME = {
+    executive: "/executive",
+    super_admin: "/admin",
+};
+
+const Logo = () => (
+    <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-200 bg-white shadow-sm">
+            <ScanLine className="h-6 w-6 text-red-600" />
+        </div>
+        <span className="text-2xl font-bold tracking-tight text-slate-900">
+            OCR<span className="text-red-500">.</span>dev
+        </span>
+    </div>
+);
+
+const Field = ({ id, label, icon: Icon, error, right, hint, ...props }) => (
+    <div>
         <label
             htmlFor={id}
-            className="block text-xs font-semibold uppercase tracking-wider text-slate-400"
+            className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500"
         >
             {label}
         </label>
-        <div className="relative">
+
+        <div
+            className={clsx(
+                "group flex items-center rounded-xl border bg-white transition focus-within:ring-4",
+                error
+                    ? "border-red-400 focus-within:border-red-500 focus-within:ring-red-500/10"
+                    : "border-slate-200 hover:border-slate-300 focus-within:border-red-500 focus-within:ring-red-500/10",
+            )}
+        >
             <span
                 className={clsx(
-                    "pointer-events-none absolute left-4 top-1/2 -translate-y-1/2",
-                    error ? "text-red-400" : "text-slate-500",
+                    "flex h-12 w-12 shrink-0 items-center justify-center",
+                    error
+                        ? "text-red-500"
+                        : "text-slate-400 group-focus-within:text-red-500",
                 )}
             >
                 <Icon className="h-4 w-4" />
             </span>
+
             <input
                 id={id}
                 name={id}
-                className={clsx(
-                    "w-full rounded-xl border bg-slate-900/60 py-3.5 pl-11 pr-11 text-sm text-white placeholder-slate-600 outline-none transition",
-                    error
-                        ? "border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/30"
-                        : "border-slate-800 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30",
-                )}
+                aria-invalid={!!error}
+                className="h-12 w-full min-w-0 bg-transparent pr-3 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:text-sm"
                 {...props}
             />
-            {right}
+
+            {right && (
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center">
+                    {right}
+                </span>
+            )}
         </div>
-        {error && <p className="text-xs text-red-400">{error}</p>}
+
+        {error ? (
+            <p role="alert" className="mt-1.5 text-xs font-medium text-red-500">
+                {error}
+            </p>
+        ) : hint ? (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                <TriangleAlert className="h-3.5 w-3.5" />
+                {hint}
+            </p>
+        ) : null}
     </div>
 );
 
 const Login = () => {
-    const { login } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
-    const redirectTo = location.state?.from?.pathname || "/dashboard";
 
     const [form, setForm] = useState({ userId: "", password: "" });
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
+    const [capsLock, setCapsLock] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((p) => ({ ...p, [name]: value }));
         if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
+    };
+
+    const handleCaps = (e) => {
+        if (e.getModifierState) setCapsLock(e.getModifierState("CapsLock"));
     };
 
     const validate = () => {
@@ -415,75 +557,72 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!validate()) return;
+        if (loading || !validate()) return;
 
         try {
             setLoading(true);
 
-            console.log("Login request:", {
-                userId: form.userId,
-                password: form.password,
-            });
+            const { data } = await axios.post(
+                `${BASE_URL}/api/v1/auth/login`,
+                { userId: form.userId.trim(), password: form.password },
+                { withCredentials: true },
+            );
 
-            const result = await login(form.userId.trim(), form.password);
+            if (!data?.success || !data?.access_token) {
+                throw new Error(data?.message || "Login failed");
+            }
 
-            console.log("Login success:", result);
+            const role = String(data.user?.role || "").toLowerCase();
+            const target = ROLE_HOME[role];
+            if (!target)
+                throw new Error(`No page configured for role "${role}"`);
+
+            // simple storage: token + user
+            localStorage.setItem("access_token", data?.access_token);
+            localStorage.setItem("user", JSON.stringify(data.user));
 
             toast.success("Logged in successfully");
-
-            navigate(redirectTo, { replace: true });
+            navigate(target, { replace: true });
         } catch (err) {
-            console.error("LOGIN ERROR:", err);
-
-            console.error("Status:", err.response?.status);
-            console.error("Response:", err.response?.data);
-            console.error("Message:", err.message);
-
-            toast.error(err.response?.data?.message || "Something went wrong.");
+            toast.error(
+                err.response?.data?.message ||
+                    err.message ||
+                    "Something went wrong.",
+                { duration: 2000 },
+            );
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-            {/* Grid background */}
+        <div className="relative flex min-h-screen flex-col overflow-hidden bg-white text-slate-900">
             <div
-                className="pointer-events-none absolute inset-0 opacity-[0.15]"
+                className="pointer-events-none absolute inset-0 opacity-40"
                 style={{
                     backgroundImage:
-                        "linear-gradient(rgba(148,163,184,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.15) 1px, transparent 1px)",
+                        "linear-gradient(rgba(226,232,240,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(226,232,240,0.6) 1px, transparent 1px)",
                     backgroundSize: "48px 48px",
                 }}
             />
-            {/* Neon glows */}
-            <div className="pointer-events-none absolute left-1/2 top-0 h-100 w-150 -translate-x-1/2 rounded-full bg-cyan-500/20 blur-[120px]" />
-            <div className="pointer-events-none absolute bottom-0 right-0 h-75 w-100 rounded-full bg-purple-600/20 blur-[100px]" />
+            <div className="pointer-events-none absolute left-1/2 top-0 h-80 w-[80vw] max-w-150 -translate-x-1/2 rounded-full bg-red-500/10 blur-[100px]" />
 
-            <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
-                <div className="w-full max-w-md">
-                    {/* Logo */}
-                    <div className="mb-10 flex flex-col items-center">
-                        <div className="relative">
-                            <div className="absolute inset-0 rounded-2xl bg-cyan-500/40 blur-xl" />
-                            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-500/30 bg-slate-900">
-                                <ScanLine className="h-8 w-8 text-cyan-400" />
-                            </div>
-                        </div>
-                        <h1 className="mt-5 text-2xl font-bold tracking-tight">
-                            OCR<span className="text-cyan-400">.</span>dev
+            <header className="relative flex justify-center px-4 pt-10">
+                <Logo />
+            </header>
+
+            <main className="relative flex flex-1 items-center justify-center px-4 py-10">
+                <div className="w-full max-w-sm sm:max-w-md">
+                    <div className="mb-8 text-center">
+                        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                            Sign in to your account
                         </h1>
-                        <p className="mt-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                            Secure Access Portal
+                        <p className="mt-2 text-sm text-slate-500">
+                            Enter your credentials to continue.
                         </p>
                     </div>
 
-                    {/* Card */}
-                    <div className="relative rounded-2xl border border-slate-800 bg-slate-900/70 p-8 backdrop-blur-xl">
-                        {/* Top accent line */}
-                        <div className="absolute inset-x-0 -top-px mx-auto h-px w-3/4 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
-
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-8">
                         <form
                             onSubmit={handleSubmit}
                             noValidate
@@ -497,8 +636,12 @@ const Login = () => {
                                 onChange={handleChange}
                                 placeholder="Enter your user ID"
                                 autoComplete="username"
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 error={errors.userId}
                             />
+
                             <Field
                                 id="password"
                                 label="Password"
@@ -506,16 +649,25 @@ const Login = () => {
                                 type={showPassword ? "text" : "password"}
                                 value={form.password}
                                 onChange={handleChange}
+                                onKeyUp={handleCaps}
+                                onKeyDown={handleCaps}
+                                onBlur={() => setCapsLock(false)}
                                 placeholder="Enter your password"
                                 autoComplete="current-password"
                                 error={errors.password}
+                                hint={capsLock ? "Caps Lock is on" : undefined}
                                 right={
                                     <button
                                         type="button"
+                                        aria-label={
+                                            showPassword
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
                                         onClick={() =>
                                             setShowPassword((s) => !s)
                                         }
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-cyan-400"
+                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:text-red-600"
                                     >
                                         {showPassword ? (
                                             <EyeOff className="h-4 w-4" />
@@ -526,56 +678,34 @@ const Login = () => {
                                 }
                             />
 
-                            <div className="flex items-center justify-between text-xs">
-                                <label className="flex items-center gap-2 text-slate-400">
-                                    <input
-                                        type="checkbox"
-                                        className="h-3.5 w-3.5 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
-                                    />
-                                    Remember device
-                                </label>
-                                <a
-                                    href="#"
-                                    className="font-medium text-cyan-400 hover:text-cyan-300"
-                                >
-                                    Reset access
-                                </a>
-                            </div>
-
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-cyan-500 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 disabled:opacity-60"
+                                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-600/25 transition hover:bg-red-500 focus:outline-none focus:ring-4 focus:ring-red-500/30 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {loading ? "Authenticating..." : "Authenticate"}
-                                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Signing in...
+                                    </>
+                                ) : (
+                                    <>
+                                        Sign in
+                                        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                                    </>
+                                )}
                             </button>
                         </form>
 
-                        <div className="mt-6 flex items-center gap-3 border-t border-slate-800 pt-6">
-                            <Shield className="h-4 w-4 text-emerald-400" />
-                            <p className="text-xs text-slate-500">
+                        <div className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-6">
+                            <Shield className="h-4 w-4 shrink-0 text-red-500" />
+                            <p className="text-xs text-slate-400">
                                 Protected by AES-256 encryption
                             </p>
                         </div>
                     </div>
-
-                    {/* Footer */}
-                    <div className="mt-6 flex items-center justify-center gap-4 text-xs text-slate-600">
-                        <a href="#" className="hover:text-slate-400">
-                            Privacy
-                        </a>
-                        <span>•</span>
-                        <a href="#" className="hover:text-slate-400">
-                            Terms
-                        </a>
-                        <span>•</span>
-                        <a href="#" className="hover:text-slate-400">
-                            Status
-                        </a>
-                    </div>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };
