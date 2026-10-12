@@ -440,6 +440,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+
 import {
     ArrowRight,
     Eye,
@@ -451,7 +452,9 @@ import {
     User,
     TriangleAlert,
 } from "lucide-react";
+
 import toast from "react-hot-toast";
+
 import clsx from "clsx";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -467,7 +470,7 @@ const Logo = () => (
             <ScanLine className="h-6 w-6 text-red-600" />
         </div>
         <span className="text-2xl font-bold tracking-tight text-slate-900">
-            OCR<span className="text-red-500">.</span>dev
+            OCR
         </span>
     </div>
 );
@@ -536,6 +539,7 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [capsLock, setCapsLock] = useState(false);
     const [loading, setLoading] = useState(false);
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -708,6 +712,7 @@ const Login = () => {
             </main>
         </div>
     );
+
 };
 
 export default Login;

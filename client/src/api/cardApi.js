@@ -41,3 +41,25 @@ export const saveCardApi = (payload) =>
  * Uncomment later if you add one:
  */
 // export const getCardsApi = () => api.get("/api/v1/executive/leads");
+
+/**
+ * Download all saved leads as an Excel sheet.
+ *
+ * FRONTEND DUMMY - no backend call yet.
+ * When your real export endpoint is ready, replace the body with e.g.:
+ *
+ *   export const downloadLeadsExcelApi = () =>
+ *       api.get("/api/v1/executive/export-excel", { responseType: "blob" });
+ *
+ * and then trigger the file save with the returned blob.
+ */
+export const downloadLeadsExcelApi = async (leads = []) => {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    console.log(
+        `[dummy] downloadLeadsExcelApi called with ${leads.length} lead(s)`,
+    );
+    return {
+        success: true,
+        message: "Excel export ready (dummy - connect your real API)",
+    };
+};
