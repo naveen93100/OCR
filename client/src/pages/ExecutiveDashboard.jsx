@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import ScanPanel from "../components/executive/ScanPanel";
 import CardForm from "../components/executive/CardForm";
 import RecentCards from "../components/executive/RecentCards";
+import api from "../api/axiosInstance";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -69,9 +70,9 @@ const ExecutiveDashboard = () => {
     const getHistory = useCallback(async () => {
         try {
             setLoadingHistory(true);
-            const { data } = await axios.get(
+            const { data } = await api.get(
                 `${BASE_URL}/api/v1/executive/history`,
-                { withCredentials: true },
+                // { withCredentials: true },
             );
 
             if (data?.success) {

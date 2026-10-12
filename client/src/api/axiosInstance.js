@@ -1,49 +1,40 @@
-// import axios from "axios";
 
-// const api = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL,
-//   withCredentials: true,
-// });
-
-// api.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     const isLoginCall = error.config?.url?.includes("/auth/login");
-
-//     if (error.response?.status === 401 && !isLoginCall) {
-//       window.location.href = "/login";
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-
-// export default api;
 
 
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
+    withCredentials: true
 });
 
-// attach the JWT to every request
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-});
+let navigateTo;
+
+export const setNavigate = (navigate) => {
+    navigateTo = navigate;
+}
+
 
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        const isLoginCall = error.config?.url?.includes("/auth/login");
+    async (error) => {
+        const originalReq = error.config;
 
-        if (error.response?.status === 401 && !isLoginCall) {
-            localStorage.removeItem("access_token");
-            window.location.href = "/login";
+        if (error.response?.status === 401 && originalReq && !originalReq._retry && !originalReq.url?.includes('/refresh-token')) {
+            originalReq._retry = true;
+
+            try {
+                await api.get('/api/v1/auth/refresh-token');
+                return api(originalReq);
+
+            } catch (er) {
+                toast.error(er?.message);
+                toast.dismiss();
+                navigateTo('/login', { replace: true })
+                return Promise.reject(er);
+            }
         }
-
         return Promise.reject(error);
     },
 );
