@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { X, Eye, EyeOff } from "lucide-react";
-
+import axios from "axios";
+const BASE_URL = import.meta.env.VITE_API_URL;
 const ROLES = [
     { value: "executive", label: "Executive" },
     { value: "super_admin", label: "Super Admin" },
@@ -42,8 +43,11 @@ const ExecutiveModal = ({ onClose, onSuccess }) => {
 
         try {
             setSaving(true);
-            // TODO: call backend create API here
-            // await axios.post(`${BASE_URL}/api/v1/executives`, { name, role: form.role, password: form.password });
+
+            await axios.post(
+                `${BASE_URL}/api/v1/admin/create-marketing-person`,
+                { name, role: form.role, password: form.password },
+            );
             toast.success("Executive added");
             onSuccess?.({ name, role: form.role });
             onClose();

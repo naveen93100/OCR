@@ -3,7 +3,9 @@ import { Outlet, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import Sidebar from "../pages/Sidebar";
 import Header from "./Header";
+import { downloadExcel } from "../utils/downloadExcel";
 
+const BASE_URL = import.meta.env.VITE_API_URL;
 const getUser = () => {
     try {
         return JSON.parse(localStorage.getItem("user"));
@@ -60,8 +62,11 @@ const DashboardLayout = () => {
                     onMenuClick={() => setSidebarOpen(true)}
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
-                    onDownload={() => toast.success("Download Excel — feature coming soon!")}
+
                     user={user}
+                    onDownload={() =>
+                        downloadExcel(`${BASE_URL}/api/v1/admin/download-excel`)
+                    }
                 />
 
                 {/* Page content renders here */}
