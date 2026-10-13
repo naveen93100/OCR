@@ -6,18 +6,14 @@ const router = express.Router();
 
 router.get('/',getDashBoardData);
 router.post('/create-admin',createAdmin);
-router.get('/:executiveUserId',getExecutiveLeads);
-
-// particular
-router.get('/:executiveUserId/export',exportExecutiveLeads);
-
-
-// 
-
 router.post('/create-marketing-person',createMarketingPerson);
 
-// main
+
 router.get('/download-excel',downloadExcel);
+
+router.get('/:executiveUserId/export',exportExecutiveLeads);
+
+router.get('/:executiveUserId',getExecutiveLeads);
 
 
 export default router;
