@@ -34,7 +34,7 @@ export const DUMMY_CARDS = [
     },
 ];
 
-// fake OCR results: one is picked at random on every scan
+
 const SAMPLE_SCANS = [
     {
         name: "Neha Gupta",
