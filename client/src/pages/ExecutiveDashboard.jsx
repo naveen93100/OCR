@@ -455,9 +455,9 @@ const ExecutiveDashboard = () => {
     const getHistory = useCallback(async () => {
         try {
             setLoadingHistory(true);
-            const { data } = await api.get(
+            const { data } = await axios.get(
                 `${BASE_URL}/api/v1/executive/history`,
-                // { withCredentials: true },
+                { withCredentials: true },
             );
 
             if (data?.success) {
@@ -467,6 +467,7 @@ const ExecutiveDashboard = () => {
                 setCards(sorted);
             }
         } catch (err) {
+            console.log("showing the error histery", err);
             if (handleAuthError(err)) return;
             toast.error(
                 err?.response?.data?.message || "Could not load history",
