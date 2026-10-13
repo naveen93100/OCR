@@ -2,46 +2,109 @@ import Lead from "../models/LeadModel.js";
 import User from "../models/userModel.js";
 import XLSX from "xlsx";
 
+export const getAllLeads = async (req, res) => {
+    try {
+        let { pageNo, limit } = req.query;
+
+        pageNo = parseInt(pageNo) || 1
+        limit = parseInt(limit) || 40
+
+        const totalLead = await Lead.countDocuments();
+
+
+
+
+        const [total, leads] = await Promise.all([
+            Lead.countDocuments(),
+            Lead.aggregate([
+                {
+                    $sort: {
+                        createdAt: -1
+                    }
+                },
+                {
+                    $skip: (pageNo - 1) * limit
+                }, {
+                    $limit: limit
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'executiveUserId',
+                        foreignField: 'userId',
+                        as: 'executive'
+                    }
+                },
+                {
+                    $unwind: { path: '$executive', preserveNullAndEmptyArrays: true }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        customerName: 1,
+                        city: 1,
+                        email: 1,
+                        mobileNo: 1,
+                        executiveName: '$executive.name',
+                        executiveUserId: '$executive.userId',
+                        createdAt: 1
+                    }
+                }
+            ])
+        ])
+
+        return res.status(200).json({ success: true, leads, total });
+
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}
+
 export const getDashBoardData = async (req, res) => {
     try {
-        let executives = await User.aggregate([
-            {
-                $match: {
-                    role: "executive",
+
+        let [totalExecutive, totalLeads, recentLeads] = await Promise.all([
+            User.countDocuments({ role: 'executive' }),
+            Lead.countDocuments(),
+            Lead.aggregate([
+                {
+                    $sort: {
+                        createdAt: -1
+                    }
                 },
-            },
-            {
-                $lookup: {
-                    from: "leads",
-                    localField: "userId",
-                    foreignField: "executiveUserId",
-                    pipeline: [
-                        {
-                            $count: "total",
-                        },
-                    ],
-                    as: "leadCount",
+                {
+                    $limit: 4
                 },
-            },
-            {
-                $project: {
-                    _id: 1,
-                    name: 1,
-                    role: 1,
-                    userId: 1,
-                    leadCount: {
-                        $ifNull: [
-                            {
-                                $arrayElemAt: ["$leadCount.total", 0],
-                            },
-                            0,
-                        ],
-                    },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'executiveUserId',
+                        foreignField: 'userId',
+                        as: 'executive'
+                    }
                 },
-            },
+                {
+                    $unwind: {
+                        path: '$executive',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        customerName: 1,
+                        companyName: 1,
+                        city: 1,
+                        executiveName: '$executive.name',
+                        executiveUserId: 1,
+                        createdAt: 1
+                    }
+                }
+            ])
         ]);
 
-        return res.status(200).json({ success: true, executives });
+        return res.status(200).json({ success: true, totalExecutive, totalLeads, recentLeads });
+
     } catch (er) {
         return res.status(500).json({ success: false, message: er?.message });
     }
@@ -101,12 +164,12 @@ export const createMarketingPerson = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message: "userId created.",
+            message: "Account created..",
             data: {
-                _id: user._id,
                 name: user.name,
                 role: user.role,
                 userId: user.userId,
+                leadCount: 0
             },
         });
     } catch (er) {
@@ -262,14 +325,25 @@ export const exportExecutiveLeads = async (req, res) => {
                     message: "Executive User Id not found..",
                 });
 
-        let leads = await Lead.find({ executiveUserId }).select(
-            "_id customerName city requirement mobileNo createdAt",
-        );
+        const leads = await Lead.find({ executiveUserId })
+            .select("customerName city requirement mobileNo createdAt")
+            .lean();
 
-        let worksheet = XLSX.utils.json_to_sheet(leads);
-        let workbook = XLSX.utils.book_new();
+        const formatLeads = leads?.map((i) => {
+            return {
+                customerName: i?.customerName || 'N/A',
+                city: i?.city || 'N/A',
+                requirement: i?.requirement || 'N/A',
+                mobileNo: i?.mobileNo || 'N/A',
+                createdAt: i?.createdAt
+            }
+        })
 
-        XLSX.utils.book_append_sheet(workbook, worksheet, "leads");
+        const worksheet = XLSX.utils.json_to_sheet(formatLeads);
+        const workbook = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, "formatLeads");
+
 
         const excelBuffer = XLSX.write(workbook, {
             type: "buffer",
@@ -278,17 +352,62 @@ export const exportExecutiveLeads = async (req, res) => {
 
         res.setHeader(
             "Content-Disposition",
-            'attachement; filename="executiveLeads.xlsx"',
+            'attachment; filename="executiveLeads.xlsx"'
         );
 
         res.setHeader(
             "Content-Type",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         );
-        res.send(excelBuffer);
 
-        return res.status(200).json({ success: true, leads });
+        return res.status(200).end(excelBuffer);
+
     } catch (er) {
         return res.status(500).json({ success: false, message: er?.message });
     }
 };
+
+export const getAllExecutive = async (req, res) => {
+    try {
+        let executives = await User.aggregate([
+            {
+                $match: {
+                    role: "executive"
+                }
+            },
+            {
+                $lookup: {
+                    from: "leads",
+                    localField: "userId",
+                    foreignField: "executiveUserId",
+                    pipeline: [
+                        {
+                            $count: "total"
+                        }
+                    ],
+                    as: "leadCount"
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    userId: 1,
+                    role: 1,
+                    leadCount: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$leadCount.total", 0] },
+                            0
+                        ]
+                    }
+                }
+            }
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            executives
+        });
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}

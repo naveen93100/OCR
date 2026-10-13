@@ -44,6 +44,8 @@ import ExecutiveDashboard from "../pages/ExecutiveDashboard";
 import Dashboard from "../pages/Dashboard";
 import AddExecutive from "../pages/superAdmin/AddExecutive";
 import DashboardLayout from "../components/DashboardLayout";
+import AllLeads from "../pages/superAdmin/AllLeads";
+import ShowExecutiveList from "../pages/superAdmin/ShowExecutiveList";
 
 const ROLE_HOME = {
     executive: "/executive",
@@ -117,8 +119,9 @@ const AppRoutes = () => (
             }
         >
             <Route path="/admin" element={<Dashboard />} />
-            {/* <Route path="/add-executive" element={<AddExecutive />} /> */}
-            {/* TODO: /scans, /team, /billing, /settings go here too */}
+            <Route path="/all-leads" element={<AllLeads />} />
+            <Route path="/team" element={<ShowExecutiveList />} />
+
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

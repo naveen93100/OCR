@@ -11,16 +11,15 @@ import {
     X,
     LogOut,
     UserPlus,
+    SquareText
 } from "lucide-react";
 
 const navItems = [
     // { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
     { icon: LayoutDashboard, label: "Dashboard", to: "/admin" },
-    // { icon: UserPlus, label: "Add-Executive", to: "/add-executive" },
-    { icon: ScanLine, label: "Scans", to: "/scans" },
-    { icon: Users, label: "Team", to: "/team" },
-    { icon: CreditCard, label: "Billing", to: "/billing" },
-    { icon: Settings, label: "Settings", to: "/settings" },
+    { icon: SquareText, label: "All Leads", to: "/all-leads" },
+    { icon: Users, label: "Executive", to: "/team" },
+    // { icon: ScanLine, label: "Scans", to: "/scans" },
 ];
 
 const Sidebar = ({ open, onClose, onLogout, user }) => (

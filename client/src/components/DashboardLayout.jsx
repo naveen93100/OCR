@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import Sidebar from "../pages/Sidebar";
 import Header from "./Header";
 import { downloadExcel } from "../utils/downloadExcel";
+import api from "../api/axiosInstance";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 const getUser = () => {
@@ -29,6 +30,9 @@ const DashboardLayout = () => {
         try {
             // TODO: call backend logout endpoint here
             clearSession();
+            await api.post(
+                `${BASE_URL}/api/v1/auth/logout`
+            );
             toast.success("Logged out successfully");
             navigate("/login", { replace: true });
         } catch (err) {
