@@ -235,3 +235,41 @@ export const getExecutiveLeads = async (req, res) => {
         return res.status(500).json({ success: false, message: er?.message });
     }
 }
+
+export const exportExecutiveLeads = async (req, res) => {
+    try {
+
+        let { executiveUserId } = req.params;
+
+        if (!executiveUserId) return res.status(400).json({ success: false, message: "Executive User Id not found.." });
+
+        let leads = await Lead.find({ executiveUserId }).select('_id customerName city requirement mobileNo createdAt');
+
+        let worksheet = XLSX.utils.json_to_sheet(leads);
+        let workbook = XLSX.utils.book_new();
+
+
+        XLSX.utils.book_append_sheet(
+            workbook, worksheet, 'leads'
+        )
+
+        const excelBuffer = XLSX.write(workbook, {
+            type: 'buffer',
+            bookType: 'xlsx'
+        });
+
+        res.setHeader(
+            "Content-Disposition",
+            'attachement; filename="executiveLeads.xlsx"'
+        )
+
+        res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        res.send(excelBuffer);
+
+
+        return res.status(200).json({ success: true, leads });
+
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}

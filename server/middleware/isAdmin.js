@@ -4,14 +4,14 @@ import jwt from 'jsonwebtoken';
 export const isAdmin = (req, res, next) => {
     try {
 
-        let token = req.cookies.accessToken;
+        let token = req.cookies?.accessToken;
 
         if (!token) return res.status(400).json({ success: false, message: "Invalid or missing.." });
 
         const validToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
 
-        if (validToken && validToken.role !== 'super_adming') return res.status(403).json({ success: false, message: "Access Denied.." });
+        if (validToken && validToken.role !== 'super_admin') return res.status(403).json({ success: false, message: "Access Denied.." });
 
         next();
 
