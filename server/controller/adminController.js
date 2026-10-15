@@ -226,7 +226,6 @@ export const downloadExcel = async (req, res) => {
         );
         res.send(excelBuffer);
 
-        return res.status(200).json({ success: true, leads });
     } catch (er) {
         return res.status(500).json({ success: false, message: er?.message });
     }

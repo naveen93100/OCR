@@ -1,20 +1,26 @@
 import { Router } from 'express'
-import { scanCard, createLead,getLeadHistory ,downloadExecutiveLeads,uploadCard} from '../controller/executiveController.js';
-import upload from '../middleware/multer.js';
+import { scanCard, getLeadHistory, downloadExecutiveLeads, uploadCard, bulkUpload, getPendingCards,updateCard,updateCardStatus } from '../controller/executiveController.js';
+import { compressCards } from '../middleware/multer.js';
 import { isAuth } from '../middleware/isAuth.js';
 
 const router = Router();
 
+router.post('/bulk-upload', isAuth, compressCards, bulkUpload);
 
-router.post('/scan-card', isAuth, upload.single('cardImg'), scanCard);
+router.post('/scan-single', isAuth, compressCards, scanCard);
 
-router.post('/upload-card',isAuth,upload.single('cardImg'),uploadCard);
+router.get('/pending-cards', isAuth, getPendingCards);
 
-router.post('/create-lead', isAuth,createLead);
+router.patch('/update-card/:cardId',isAuth,updateCard);
 
-router.get('/history',isAuth,getLeadHistory);
+router.post('/change-status/:cardId',isAuth,updateCardStatus);
 
-router.get('/excel',isAuth,downloadExecutiveLeads);
+// -------------------------
+
+
+router.get('/history', isAuth, getLeadHistory);
+
+router.get('/excel', isAuth, downloadExecutiveLeads);
 
 
 

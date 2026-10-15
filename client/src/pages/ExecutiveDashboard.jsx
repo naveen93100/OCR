@@ -1,407 +1,388 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Download, Layers, Loader2, LogOut, ScanLine } from "lucide-react";
+import {
+  CheckCircle2, Clock3, Download, History, LayoutDashboard, Layers,
+  Loader2, LogOut, RefreshCw, ScanLine, ShieldQuestion, XCircle,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import ScanPanel from "../components/executive/ScanPanel";
-import CardForm from "../components/executive/CardForm";
-import RecentCards from "../components/executive/RecentCards";
 import api from "../api/axiosInstance";
 
-const BASE_URL = import.meta.env.VITE_API_URL;
-
-const getToken = () => localStorage.getItem("access_token");
-
+// Uses the existing API contract: { success, history: [] } and { success }.
+// scan-single must persist/queue the card server-side. Pending uses its own endpoint.
+// Pending response adapter below accepts pendingCards, cards, or data arrays.
+// ScanPanel must call onScan(file) for both uploads and camera captures.
+const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const REFRESH_MS = 10000;
+const NAV_ITEMS = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "history", label: "History", icon: History },
+  { id: "pending", label: "Pending", icon: Clock3 },
+  { id: "unverified", label: "Unverified", icon: ShieldQuestion },
+  { id: "verified", label: "Verified", icon: CheckCircle2 },
+  { id: "rejected", label: "Rejected", icon: XCircle },
+];
+const STATUS_STYLES = {
+  pending: "bg-amber-50 text-amber-700",
+  unverified: "bg-blue-50 text-blue-700",
+  verified: "bg-emerald-50 text-emerald-700",
+  rejected: "bg-red-50 text-red-700",
+};
+const normalizeStatus = (status) =>
+  String(status || "unknown").trim().toLowerCase().replace(/[\s_-]/g, "");
 const getUser = () => {
-    try {
-        return JSON.parse(localStorage.getItem("user"));
-    } catch {
-        return null;
-    }
+  try { return JSON.parse(localStorage.getItem("user")); }
+  catch { return null; }
 };
-
 const clearSession = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("user");
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("user");
+};
+const formatDate = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("en-IN");
 };
 
-/* keep digits only, strip +91 / leading 0, max 10 digits */
-const cleanMobile = (v = "") => {
-    let digits = String(v).replace(/\D/g, "");
-    if (digits.length > 10 && digits.startsWith("91")) digits = digits.slice(2);
-    if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1);
-    return digits.slice(0, 10);
-};
+function StatCard({ icon: Icon, label, value, loading, onClick }) {
+  return (
+    <button type="button" onClick={onClick}
+      className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-red-300 focus-visible:outline-red-700">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-slate-500">{label}</span>
+        <Icon className="h-5 w-5 text-red-700" />
+      </div>
+      <p className="mt-3 text-3xl font-bold">{loading ? "…" : value}</p>
+    </button>
+  );
+}
 
-/* ---------- reusable stat card ---------- */
-const StatCard = ({ icon: Icon, label, value, hint, loading }) => (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    {label}
-                </p>
-                <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                    {loading ? "…" : value}
-                </p>
-                {hint && (
-                    <p className="mt-1 truncate text-xs text-slate-400">
-                        {hint}
-                    </p>
-                )}
+export default function ExecutiveDashboard() {
+  const navigate = useNavigate();
+  const user = useMemo(getUser, []);
+  const [activeView, setActiveView] = useState("dashboard");
+  const [cards, setCards] = useState([]);
+  const [pendingCards, setPendingCards] = useState([]);
+  const [loadingPending, setLoadingPending] = useState(true);
+  const [refreshingPending, setRefreshingPending] = useState(false);
+  const [pendingError, setPendingError] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const scanBusy = useRef(false);
+  const historyController = useRef(null);
+  const pendingController = useRef(null);
+  const scanController = useRef(null);
+  const mounted = useRef(false);
+  const authExpired = useRef(false);
+  const displayName = user?.name || user?.userId || "Executive";
+
+  const handleAuthError = useCallback((err) => {
+    if (err?.response?.status !== 401) return false;
+    if (!authExpired.current) {
+      authExpired.current = true;
+      clearSession();
+      toast.error("Session expired. Please login again.");
+      navigate("/login", { replace: true });
+    }
+    return true;
+  }, [navigate]);
+
+  const getHistory = useCallback(async ({ silent = false } = {}) => {
+    if (authExpired.current) return;
+    // Cancel older reads so a stale response cannot overwrite newer history.
+    historyController.current?.abort();
+    const controller = new AbortController();
+    historyController.current = controller;
+    if (!silent) setRefreshing(true);
+    try {
+      const { data } = await axios.get(`${BASE_URL}/api/v1/executive/history`, {
+        withCredentials: true, signal: controller.signal,
+      });
+      if (!data?.success || !Array.isArray(data.history)) {
+        throw new Error(data?.message || "Invalid history response");
+      }
+      if (!mounted.current || controller.signal.aborted) return;
+      setCards([...data.history].sort((a, b) =>
+        (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)));
+      setHistoryError("");
+    } catch (err) {
+      if (controller.signal.aborted || !mounted.current) return;
+      if (handleAuthError(err)) return;
+      const message = err?.response?.data?.message || err.message || "Could not load cards";
+      setHistoryError(message);
+      if (!silent) toast.error(message);
+    } finally {
+      if (mounted.current && historyController.current === controller) {
+        setLoadingHistory(false);
+        setRefreshing(false);
+        historyController.current = null;
+      }
+    }
+  }, [handleAuthError]);
+
+  const getPendingCards = useCallback(async ({ silent = false } = {}) => {
+    if (authExpired.current) return;
+    pendingController.current?.abort();
+    const controller = new AbortController();
+    pendingController.current = controller;
+    if (!silent) setRefreshingPending(true);
+    try {
+      const { data } = await axios.get(`${BASE_URL}/api/v1/executive/pending-cards`, {
+        withCredentials: true, signal: controller.signal,
+      });
+      // Adjust this adapter if your backend uses a different response envelope.
+      const rows = [data?.pendingCards, data?.cards, data?.data,
+        data?.data?.pendingCards, data?.data?.cards, data].find(Array.isArray);
+      if (data?.success === false || !rows || rows.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
+        throw new Error(data?.message || "Invalid pending-cards response");
+      }
+      if (!mounted.current || controller.signal.aborted) return;
+      setPendingCards(rows.map((card) => ({ ...card, status: card.status || "pending" }))
+        .sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0)));
+      setPendingError("");
+    } catch (err) {
+      if (controller.signal.aborted || !mounted.current || handleAuthError(err)) return;
+      const message = err?.response?.data?.message || err.message || "Could not load pending cards";
+      setPendingError(message);
+      if (!silent) toast.error(message);
+    } finally {
+      if (mounted.current && pendingController.current === controller) {
+        setLoadingPending(false);
+        setRefreshingPending(false);
+        pendingController.current = null;
+      }
+    }
+  }, [handleAuthError]);
+
+  useEffect(() => {
+    mounted.current = true;
+    if (!user || !localStorage.getItem("access_token")) {
+      navigate("/login", { replace: true });
+      return () => { mounted.current = false; };
+    }
+    void getHistory();
+    void getPendingCards();
+    // Poll even when no pending card is visible yet (queue visibility may lag).
+    const refresh = () => {
+      if (document.visibilityState === "visible" && !historyController.current) {
+        void getHistory({ silent: true });
+      }
+      if (document.visibilityState === "visible" && !pendingController.current) {
+        void getPendingCards({ silent: true });
+      }
+    };
+    const interval = window.setInterval(refresh, REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      mounted.current = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+      historyController.current?.abort();
+      pendingController.current?.abort();
+      scanController.current?.abort();
+    };
+  }, [user, navigate, getHistory, getPendingCards]);
+
+  useEffect(() => {
+    if (activeView === "pending" && user && localStorage.getItem("access_token") && !pendingController.current) {
+      void getPendingCards();
+    }
+  }, [activeView, user, getPendingCards]);
+
+  const statusCounts = useMemo(() => {
+    const counts = { pending: 0, unverified: 0, verified: 0, rejected: 0 };
+    cards.forEach((card) => {
+      const status = normalizeStatus(card.status);
+      if (Object.prototype.hasOwnProperty.call(counts, status)) counts[status] += 1;
+    });
+    counts.pending = pendingCards.length;
+    return counts;
+  }, [cards, pendingCards]);
+  const visibleCards = useMemo(() => {
+    if (activeView === "dashboard") return cards.slice(0, 10);
+    if (activeView === "history") return cards;
+    if (activeView === "pending") return pendingCards;
+    return cards.filter((card) => normalizeStatus(card.status) === activeView);
+  }, [cards, pendingCards, activeView]);
+  const viewLoading = activeView === "pending" ? loadingPending : loadingHistory;
+  const viewRefreshing = activeView === "pending" ? refreshingPending : refreshing;
+  const viewError = activeView === "pending" ? pendingError : historyError;
+  const refreshView = () => {
+    if (activeView === "pending") void getPendingCards();
+    else {
+      void getHistory();
+      if (activeView === "dashboard") void getPendingCards();
+    }
+  };
+  const viewLabel = NAV_ITEMS.find((item) => item.id === activeView)?.label;
+
+  const handleScan = async (file) => {
+    if (scanBusy.current || authExpired.current) return;
+    if (!(file instanceof Blob) || !file.size) {
+      toast.error("Please select or capture a card image.");
+      return;
+    }
+    scanBusy.current = true;
+    setScanning(true);
+    const controller = new AbortController();
+    scanController.current = controller;
+    try {
+      const formData = new FormData();
+      formData.append("images", file);
+      const { data } = await axios.post(
+        `${BASE_URL}/api/v1/executive/scan-single`, formData,
+        { withCredentials: true, signal: controller.signal },
+      );
+      if (!data?.success) throw new Error(data?.message || "Card submission failed");
+      if (!mounted.current) return;
+      // No draft, CardForm, or create-lead call in this flow.
+      setSubmitted(true);
+      setScannerKey((key) => key + 1);
+      toast.success("Your card is processing. Please check Pending Cards.", { duration: 5000 });
+      void getHistory({ silent: true });
+      void getPendingCards({ silent: true });
+    } catch (err) {
+      if (controller.signal.aborted || !mounted.current || handleAuthError(err)) return;
+      toast.error(err?.response?.data?.message || err.message || "Could not submit card");
+    } finally {
+      scanBusy.current = false;
+      if (mounted.current) setScanning(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (exporting || !cards.length) return;
+    setExporting(true);
+    try {
+      // The existing Excel endpoint exports all leads, regardless of active view.
+      const response = await api.get(`${BASE_URL}/api/v1/executive/excel`, {
+        responseType: "blob", withCredentials: true,
+      });
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "executive-leads.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Excel downloaded successfully");
+    } catch (err) {
+      if (!handleAuthError(err)) toast.error("Could not export Excel. Please try again.");
+    } finally {
+      if (mounted.current) setExporting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await api.post(`${BASE_URL}/api/v1/auth/logout`, {}, { withCredentials: true });
+      clearSession();
+      navigate("/login", { replace: true });
+    } catch (err) {
+      if (!handleAuthError(err)) toast.error("Logout failed. Please try again.");
+    } finally {
+      if (mounted.current) setLoggingOut(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
+      <aside className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
+        <div className="flex items-center gap-3 border-b border-slate-100 p-5">
+          <span className="rounded-xl bg-red-50 p-3 text-red-700"><ScanLine className="h-6 w-6" /></span>
+          <div><h1 className="font-bold">OCR Gautam Solar</h1><p className="text-xs text-slate-500">Executive Console</p></div>
+        </div>
+        <nav aria-label="Executive navigation" className="flex gap-2 overflow-x-auto p-3 lg:flex-1 lg:flex-col">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+            <button key={id} type="button" onClick={() => setActiveView(id)}
+              aria-current={activeView === id ? "page" : undefined}
+              className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${activeView === id ? "bg-[#a20000] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+              <Icon className="h-5 w-5" /><span>{label}</span>
+              {id !== "dashboard" && <span className="ml-auto rounded-full bg-black/5 px-2 py-0.5 text-xs">{(id === "pending" ? loadingPending : loadingHistory) ? "…" : id === "history" ? cards.length : statusCounts[id]}</span>}
+            </button>
+          ))}
+        </nav>
+        <div className="hidden border-t border-slate-100 p-5 text-xs text-slate-400 lg:block">Card scanning &amp; tracking</div>
+      </aside>
+
+      <div className="min-w-0 flex-1 lg:ml-64">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur">
+          <div><h2 className="text-lg font-bold">{viewLabel}</h2><p className="text-xs text-slate-500">Hello, {displayName}</p></div>
+          <button type="button" onClick={handleLogout} disabled={loggingOut || scanning}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:opacity-50">
+            {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} Logout
+          </button>
+        </header>
+
+        <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+          {activeView === "dashboard" && <>
+            <section className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+              <StatCard icon={Layers} label="Total Cards" value={cards.length} loading={loadingHistory} onClick={() => setActiveView("history")} />
+              {NAV_ITEMS.slice(2).map(({ id, label, icon }) => <StatCard key={id} icon={icon} label={label} value={statusCounts[id]} loading={id === "pending" ? loadingPending : loadingHistory} onClick={() => setActiveView(id)} />)}
+            </section>
+            <section className="grid gap-5 xl:grid-cols-2">
+              <ScanPanel key={scannerKey} onScan={handleScan} scanning={scanning} />
+              <div className="flex flex-col justify-center rounded-2xl border border-slate-200 bg-white p-6">
+                <Clock3 className="mb-4 h-9 w-9 text-red-700" />
+                <h3 className="text-xl font-bold">Scan now. Track processing here.</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-500">Upload or scan a visiting card to submit it for processing. Check Pending Cards for its progress. Cards are grouped by the status returned by the server.</p>
+                <button type="button" onClick={() => setActiveView("pending")} className="mt-5 self-start rounded-xl bg-[#a20000] px-4 py-3 text-sm font-semibold text-white">View Pending Cards</button>
+              </div>
+            </section>
+          </>}
+
+          {activeView === "dashboard" && pendingError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Pending cards: {pendingError}. The pending count may be out of date. <button type="button" onClick={() => void getPendingCards()} className="underline">Retry</button></p>}
+
+          {submitted && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+            <p>Your card was submitted for processing. Please check Pending Cards.</p>
+            <div className="flex gap-4"><button type="button" className="font-semibold underline" onClick={() => setActiveView("pending")}>View Pending</button><button type="button" aria-label="Dismiss submission notification" onClick={() => setSubmitted(false)}>Dismiss</button></div>
+          </div>}
+
+          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-5">
+              <div>
+                <h3 className="text-lg font-bold">{activeView === "dashboard" ? "Recent Cards" : activeView === "history" ? "Card History" : `${viewLabel} Cards`}</h3>
+                <p className="mt-1 text-xs text-slate-500">{activeView === "dashboard" ? "Latest 10 cards. " : ""}Automatically refreshes every 10 seconds while this tab is visible.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={refreshView} disabled={viewRefreshing || viewLoading} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${viewRefreshing ? "animate-spin" : ""}`} />Refresh</button>
+                <button type="button" onClick={handleDownload} disabled={exporting || loadingHistory || !cards.length} className="flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-50">{exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}Export All</button>
+              </div>
             </div>
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                <Icon className="h-5 w-5" />
-            </span>
-        </div>
-        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-linear-to-r from-red-500/0 via-red-500 to-red-500/0 opacity-60" />
+            {viewError && <p role="alert" className="bg-red-50 px-5 py-3 text-sm text-red-700">{viewError}. Displayed cards may be out of date. Use Refresh to retry.</p>}
+            <div className="overflow-x-auto" aria-busy={viewLoading || viewRefreshing}>
+              <table className="w-full min-w-[850px] text-left text-sm">
+                <thead className="bg-slate-50 text-slate-500"><tr>{["Customer", "Company", "City", "Mobile", "Email", "Status", "Created"].map((heading) => <th key={heading} scope="col" className="px-4 py-3 font-semibold">{heading}</th>)}</tr></thead>
+                <tbody className="divide-y divide-slate-100">
+                  {viewLoading ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">Loading cards…</td></tr> : visibleCards.length === 0 ? <tr><td colSpan={7} className="p-10 text-center text-slate-500">{viewError ? "Cards could not be loaded. Please refresh." : activeView === "pending" ? "No pending cards yet. Submitted cards may take a moment to appear." : "No cards found."}</td></tr> : visibleCards.map((card, index) => {
+                    const status = normalizeStatus(card.status);
+                    const label = NAV_ITEMS.find((item) => item.id === status)?.label || card.status || "Unknown";
+                    return <tr key={card._id || card.id || index} className="hover:bg-slate-50">
+                      <td className="px-4 py-4 font-medium">{card.customerName || "—"}</td>
+                      <td className="px-4 py-4">{card.companyName || "—"}</td>
+                      <td className="px-4 py-4">{card.city || "—"}</td>
+                      <td className="whitespace-nowrap px-4 py-4">{card.mobileNo || card.mobileno || "—"}</td>
+                      <td className="px-4 py-4">{card.email || "—"}</td>
+                      <td className="px-4 py-4"><span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[status] || "bg-slate-100 text-slate-600"}`}>{label}</span></td>
+                      <td className="whitespace-nowrap px-4 py-4 text-slate-500">{formatDate(card.createdAt)}</td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
-);
-
-const ExecutiveDashboard = () => {
-    const navigate = useNavigate();
-    const user = useMemo(() => getUser(), []);
-
-    const [cards, setCards] = useState([]);
-    const [draft, setDraft] = useState(null);
-    const [scanning, setScanning] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [exporting, setExporting] = useState(false);
-    const [loadingHistory, setLoadingHistory] = useState(true);
-    const [scannerKey, setScannerKey] = useState(0);
-    const formRef = useRef(null);
-
-    const [formErrors, setFormErrors] = useState({});
-
-    /* session expired -> back to login */
-    const handleAuthError = useCallback(
-        (err) => {
-            if (err?.response?.status === 401) {
-                clearSession();
-
-                toast.error("Session expired. Please login again.");
-                navigate("/login", { replace: true });
-                return true;
-            }
-            return false;
-        },
-        [navigate],
-    );
-
-    /* ---------- HISTORY ---------- */
-    const getHistory = useCallback(async () => {
-        try {
-            setLoadingHistory(true);
-            const { data } = await axios.get(
-                `${BASE_URL}/api/v1/executive/history`,
-                { withCredentials: true },
-            );
-
-            if (data?.success) {
-                const sorted = [...(data.history || [])].sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-                );
-                setCards(sorted);
-            }
-        } catch (err) {
-            console.log("showing the error histery", err);
-            if (handleAuthError(err)) return;
-            toast.error(
-                err?.response?.data?.message || "Could not load history",
-            );
-        } finally {
-            setLoadingHistory(false);
-        }
-    }, [handleAuthError]);
-
-    useEffect(() => {
-        if (!user || !getToken()) {
-            navigate("/login", { replace: true });
-            return;
-        }
-        getHistory();
-    }, [user, navigate, getHistory]);
-
-    // scroll to form after a scan on mobile
-    useEffect(() => {
-        if (draft && window.innerWidth < 1024) {
-            formRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-            });
-        }
-    }, [draft]);
-
-    const handleLogout = async () => {
-        // TODO: call logout API so the server clears the auth cookie
-        clearSession();
-        await api.post(
-            `${BASE_URL}/api/v1/auth/logout`
-        );
-        navigate("/login", { replace: true });
-    };
-
-    /* ---------- SCAN ---------- */
-    const handleScan = async (file) => {
-        try {
-            setDraft(null);
-            setFormErrors({});
-            setScanning(true);
-
-            const fd = new FormData();
-            fd.append("cardImg", file);
-
-            const { data } = await axios.post(
-                `${BASE_URL}/api/v1/executive/scan-card`,
-                fd,
-                { withCredentials: true },
-            );
-
-            if (!data?.success) throw new Error(data?.message || "Scan failed");
-
-            const d = data.data || {};
-
-            setDraft({
-                scanId: Date.now(),
-                customerName: d.customerName || "",
-                companyName: d.companyName || "",
-                city: d.city || "",
-                requirement: d.requirement || "",
-                email: d.email || "",
-                mobileNo: cleanMobile(d.mobileNo || d.mobileno),
-            });
-
-            toast.success("Card scanned. Please review the details.");
-        } catch (err) {
-            if (handleAuthError(err)) return;
-            toast.error(
-                err?.response?.data?.message || err.message || "Scan failed",
-                { duration: 2000 },
-            );
-        } finally {
-            setScanning(false);
-        }
-    };
-
-    /* ---------- SAVE ---------- */
-    const handleSave = async (values) => {
-        if (saving) return;
-        try {
-            setSaving(true);
-            setFormErrors({});
-
-            const payload = { ...values, mobileno: values.mobileNo };
-
-            const { data } = await axios.post(
-                `${BASE_URL}/api/v1/executive/create-lead`,
-                payload,
-                { withCredentials: true },
-            );
-
-            if (!data?.success) throw new Error(data?.message || "Save failed");
-
-            if (data.savedLead) {
-                setCards((prev) => [data.savedLead, ...prev]);
-            } else {
-                getHistory(); // backend didn't return the lead -> refetch
-            }
-            setDraft(null);
-            setScannerKey((k) => k + 1);
-            toast.success("Contact saved");
-        } catch (err) {
-            if (handleAuthError(err)) return;
-
-            const msg =
-                err?.response?.data?.message || err.message || "Save failed";
-            const next = {};
-            if (/city/i.test(msg)) next.city = "City is required";
-            if (/mobile/i.test(msg))
-                next.mobileNo = "Mobile number is required";
-
-            if (Object.keys(next).length) setFormErrors(next);
-            toast.error(msg, { duration: 2000 });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleDownload = async () => {
-        if (exporting) return;
-
-        if (cards.length < 1) return;
-        
-        try {
-            setExporting(true);
-            const res = await api.get(
-                `${BASE_URL}/api/v1/executive/excel`,
-                { responseType: 'blob' }
-            );
-
-            const url = window.URL.createObjectURL(res.data);
-            const link = document.createElement("a");
-
-            link.href = url;
-            link.download = "executive-leads.xlsx";
-
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-
-            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-
-            toast.success("Excel downloaded successfully");
-
-        } catch (err) {
-            toast.error(err?.message || "Could not export Excel");
-        } finally {
-            setExporting(false);
-        }
-    };
-
-    const clearFieldError = (name) =>
-        setFormErrors((p) => {
-            if (!p[name]) return p;
-            const { [name]: _removed, ...rest } = p;
-            return rest;
-        });
-
-    const displayName = user?.name || user?.userId;
-
-    return (
-        <div className="relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-900">
-            {/* grid background */}
-            <div
-                className="pointer-events-none absolute inset-0 opacity-40"
-                style={{
-                    backgroundImage:
-                        "linear-gradient(rgba(226,232,240,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(226,232,240,0.7) 1px, transparent 1px)",
-                    backgroundSize: "48px 48px",
-                }}
-            />
-            <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-[80vw] max-w-160 -translate-x-1/2 rounded-full bg-red-500/10 blur-[110px] sm:h-96" />
-            <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-[70vw] max-w-105 rounded-full bg-red-600/10 blur-[100px]" />
-
-            {/* header */}
-            <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-xl">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-4 lg:px-6">
-                    <div className="flex min-w-0 items-center gap-3">
-                        <div className="relative shrink-0">
-                            <div className="absolute inset-0 rounded-xl bg-red-500/30 blur-md" />
-                            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-white shadow-sm sm:h-11 sm:w-11">
-                                <ScanLine className="h-5 w-5 text-red-600" />
-                            </div>
-                        </div>
-                        <div className="min-w-0">
-                            <h1 className="text-base font-bold leading-tight tracking-tight sm:text-lg">
-                                OCR Gautam Solar
-                            </h1>
-                            <p className="truncate text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">
-                                Executive Console
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                        {displayName && (
-                            <div className="hidden items-center gap-2 md:flex">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-xs font-bold text-red-600">
-                                    {String(displayName)[0]?.toUpperCase()}
-                                </span>
-                                <p className="max-w-40 truncate capitalize text-sm font-medium text-slate-600">
-                                    {displayName}
-                                </p>
-                            </div>
-                        )}
-
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            aria-label="Logout"
-                            className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-500/20 sm:px-4"
-                        >
-                            <LogOut className="h-4 w-4" />
-                            <span className="hidden sm:inline">Logout</span>
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            <main className="relative mx-auto max-w-6xl px-3 py-5 sm:px-4 sm:py-8 lg:px-6">
-                <div className="mb-5 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
-                    <div className="min-w-0">
-                        <h2 className="text-xl font-bold capitalize tracking-tight sm:text-2xl">
-                            {displayName
-                                ? `Hello, ${displayName}`
-                                : "Dashboard"}
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Scan a visiting card, review the details and save
-                            the contact.
-                        </p>
-                    </div>
-                </div>
-
-                {/* total contacts */}
-                <section>
-                    <StatCard
-                        icon={Layers}
-                        label="Total Contacts"
-                        value={cards.length}
-                        hint="All saved visiting cards"
-                        loading={loadingHistory}
-                    />
-                </section>
-
-                <section className="mt-5 grid gap-5 sm:mt-6 sm:gap-6 lg:grid-cols-5">
-                    <div className="lg:col-span-2">
-                        <ScanPanel
-                            key={scannerKey}
-                            onScan={handleScan}
-                            scanning={scanning}
-                        />
-                    </div>
-                    <div ref={formRef} className="scroll-mt-20 lg:col-span-3">
-                        {draft ? (
-                            <CardForm
-                                key={draft.scanId}
-                                initial={draft}
-                                saving={saving}
-                                onSave={handleSave}
-                                serverErrors={formErrors}
-                                onFieldChange={clearFieldError}
-                                onDiscard={() => {
-                                    setDraft(null);
-                                    setFormErrors({});
-                                    setScannerKey((k) => k + 1); // also clear scanner
-                                }}
-                            />
-                        ) : (
-                            <div className="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-white/60 p-6 text-center lg:min-h-64">
-                                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-500">
-                                    <ScanLine className="h-6 w-6" />
-                                </span>
-                                <p className="max-w-xs text-sm text-slate-500">
-                                    Scan or upload a visiting card and the
-                                    extracted details will appear here for
-                                    review.
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                <section className="mt-5 sm:mt-6">
-                    <RecentCards
-                        cards={cards}
-                        onExport={handleDownload}
-                        exporting={exporting}
-                        exportDisabled={loadingHistory}
-                    />
-                </section>
-            </main>
-        </div>
-    );
-};
-
-export default ExecutiveDashboard;
+  );
+}

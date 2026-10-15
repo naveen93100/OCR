@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "worker":"node worker/cardWorker.js"
   },
   "keywords": [],
   "author": "",
@@ -12,11 +14,13 @@
   "type": "module",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "bullmq": "^6.3.15",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dns": "^0.2.2",
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.2",
     "multer": "^2.4.0",

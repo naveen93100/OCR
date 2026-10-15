@@ -33,6 +33,11 @@ const leadSchema = mongoose.Schema(
             trim: true,
             unique: true,
         },
+        alternateMobileNo: {
+            type: String,
+            trim: true,
+            default: ""
+        },
     },
     { timestamps: true },
 );

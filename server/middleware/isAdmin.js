@@ -6,7 +6,7 @@ export const isAdmin = (req, res, next) => {
 
         let token = req.cookies?.accessToken;
 
-        if (!token) return res.status(400).json({ success: false, message: "Invalid or missing.." });
+        if (!token) return res.status(401).json({ success: false, message: "Invalid or missing token.." });
 
         const validToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 

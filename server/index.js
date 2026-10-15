@@ -5,6 +5,8 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import dns from "dns";
 import cookieParser from "cookie-parser";
+import { redisConnection } from "./config/redisConfig.js";
+import { worker } from "./worker/cardWorker.js";
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
@@ -37,5 +39,7 @@ app.get("/", (req, res) => {
 
 app.listen(3001, "0.0.0.0", async () => {
     await connectDB();
+    redisConnection
+    worker
     console.log("Server is running on 3001...");
 });

@@ -197,14 +197,14 @@ const AllLeads = () => {
                                         {/* Customer */}
                                         <td className="px-5 py-4">
                                             <p className="font-semibold text-sm text-slate-900">
-                                                {lead.customerName || "—"}
+                                                {lead.customerName || "N/A"}
                                             </p>
                                         </td>
 
                                         {/* Company */}
                                         <td className="px-5 py-4">
                                             <p className="max-w-44 truncate text-sm text-slate-700">
-                                                {lead.companyName || "—"}
+                                                {lead.companyName || "N/A"}
                                             </p>
                                         </td>
 
@@ -256,7 +256,7 @@ const AllLeads = () => {
                                                     size={14}
                                                     className="shrink-0 text-slate-400"
                                                 />
-                                                {lead.city || "—"}
+                                                {lead.city || "N/A"}
                                             </div>
                                         </td>
 
@@ -266,17 +266,17 @@ const AllLeads = () => {
                                                 title={lead.requirement || ""}
                                                 className="max-w-44 truncate text-sm text-slate-600"
                                             >
-                                                {lead.requirement || "—"}
+                                                {lead.requirement || "N/A"}
                                             </p>
                                         </td>
 
                                         {/* Executive */}
                                         <td className="px-5 py-4">
                                             <p className="text-sm font-medium text-slate-800">
-                                                {lead.executiveName || "—"}
+                                                {lead.executiveName || "N/A"}
                                             </p>
                                             <p className="mt-1 text-xs text-slate-500">
-                                                {lead.executiveUserId || "—"}
+                                                {lead.executiveUserId || "N/A"}
                                             </p>
                                         </td>
 
@@ -362,7 +362,7 @@ const AllLeads = () => {
             {/* Lead details modal */}
             {selectedLead && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+                    className="fixed  inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
                     onClick={() => setSelectedLead(null)}
                 >
                     <div
