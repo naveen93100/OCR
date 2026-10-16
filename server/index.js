@@ -7,7 +7,9 @@ import dns from "dns";
 import cookieParser from "cookie-parser";
 import { redisConnection } from "./config/redisConfig.js";
 import { worker } from "./worker/cardWorker.js";
+import path from "path";
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 
 const app = express();
 
@@ -21,6 +23,8 @@ app.use(
     }),
 );
 
+app.use('/uploads/cards',express.static(path.join(process.cwd(),'uploads/cards')));
+
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.originalUrl}`);
     next();
@@ -32,14 +36,8 @@ app.get("/health", (req, res) => {
 
 app.use("/api/v1", mainRouter);
 
-app.get("/", (req, res) => {
-    return res.status(200).json({ success: true, message: "working" });
-    res.send("hello from server..");
-});
 
 app.listen(3001, "0.0.0.0", async () => {
     await connectDB();
-    redisConnection
-    worker
     console.log("Server is running on 3001...");
 });

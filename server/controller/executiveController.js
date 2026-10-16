@@ -6,11 +6,75 @@ import { createBulkCardLead, createCardLead } from '../services/cardExtraction.j
 import CardLead from '../models/cardLeadModel.js';
 import mongoose from 'mongoose';
 
+export const getExecutiveDashboardData = async (req, res) => {
+    try {
+
+        let { userId } = req.user;
+        let [cardLead, verified, cards] = await Promise.all([
+            CardLead.countDocuments({ executiveUserId: userId, status: { $ne: 'verified' } }),
+            Lead.countDocuments({ executiveUserId: userId }),
+            CardLead.aggregate([
+                {
+                    $match: {
+                        executiveUserId: userId
+                    }
+                },
+                {
+                    $facet: {
+                        pending: [
+                            { $match: { status: 'pending' } },
+                            { $count: 'count' }
+                        ],
+                        unverified: [
+                            { $match: { status: 'un-verified' } },
+                            { $count: 'count' }
+                        ],
+                        rejected: [
+                            { $match: { status: 'rejected' } },
+                            { $count: 'count' }
+                        ],
+                    }
+                },
+                {
+                    $project: {
+                        pending: {
+                            $ifNull: [{ $arrayElemAt: ["$pending.count", 0] }, 0]
+                        },
+                        unverified: {
+                            $ifNull: [{ $arrayElemAt: ["$unverified.count", 0] }, 0]
+                        },
+                        rejected: {
+                            $ifNull: [{ $arrayElemAt: ["$rejected.count", 0] }, 0]
+                        }
+                    }
+                }
+            ])
+        ])
+
+        const statusCounts = cards[0] || {
+            pending: 0,
+            unverified: 0,
+            rejected: 0
+        };
+
+        return res.status(200).json({
+            success: true,
+            total: cardLead + verified,
+            pending: statusCounts.pending,
+            verified,
+            unverified: statusCounts.unverified,
+            rejected: statusCounts.rejected
+        });
+
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}
 
 export const updateCardStatus = async (req, res) => {
     try {
         let { cardId } = req.params;
-        let { status } = req.body;
+        let { status, rejectionReason } = req.body;
         let { userId } = req.user;
 
 
@@ -22,22 +86,34 @@ export const updateCardStatus = async (req, res) => {
 
         const validStatus = {
             'rejected': [],
-            'un-verified': ['verified','rejected'],
+            'un-verified': ['verified', 'rejected'],
             "pending": [],
             "verified": [],
             "failed": []
         };
 
+        if(card.status==='verified') return res.status(400).json({success:false,message:"Lead is already verified.."});
+
         if (!Object.hasOwn(validStatus, card.status) || !validStatus[card.status].includes(status)) {
             return res.status(400).json({ success: false, message: "Invalid Status type.." });
         }
 
+        const duplicateConditions = [];
 
-        let updated = await CardLead.findByIdAndUpdate(cardId, { $set: { status } }, { new: true, runValidators: true });
+        if (card.email) {
+            duplicateConditions.push({ email: card.email });
+        }
 
-        const { imagePath, _id, ...leadData } = updated.toObject();
+        if (card.mobileNo) {
+            duplicateConditions.push({ mobileNo: card.mobileNo });
+        }
+
 
         if (status === 'verified') {
+            let exist = await Lead.findOne({ $or: duplicateConditions });
+            if (exist) return res.status(409).json({ success: true, message: "A lead already exists with this email or mobile number.." })
+            let updated = await CardLead.findByIdAndUpdate(cardId, { $set: { status, rejectionReason } }, { new: true, runValidators: true });
+
             await Lead.create({
                 customerName: updated?.customerName,
                 companyName: updated?.companyName,
@@ -47,9 +123,9 @@ export const updateCardStatus = async (req, res) => {
                 requirement: updated?.requirement,
                 executiveUserId: updated.executiveUserId,
             });
+            return res.status(200).json({ success: true, message: "Status has changed..", updated });
         }
 
-        return res.status(200).json({ success: true, message: "Status has changed..", updated });
 
     } catch (er) {
         return res.status(500).json({ success: false, message: er?.message });
@@ -85,6 +161,7 @@ export const updateCard = async (req, res) => {
         if (requirement) updateLead.requirement = requirement;
         if (email) {
             let emailExist = await CardLead.findOne({ email, _id: { $ne: cardId } });
+            console.log(emailExist);
             if (emailExist) return res.status(409).json({ success: false, message: "Email is already exist.." });
 
             updateLead.email = email;
@@ -99,9 +176,8 @@ export const updateCard = async (req, res) => {
 
         }
 
-
         const update = await CardLead.findOneAndUpdate(
-            { _id: cardId, executiveUserId: userId, status: { $in: ['un-verified', 'failed'] } },
+            { _id: cardId, executiveUserId: userId, status: 'un-verified' },
             { $set: updateLead },
             { returnDocument: 'after', runValidators: true }
         );
@@ -134,6 +210,26 @@ export const bulkUpload = async (req, res) => {
     }
 }
 
+export const getVerifiedLead = async (req, res) => {
+    try {
+        let { userId } = req.user;
+        let { pageNo, limit } = req.query;
+
+        pageNo = parseInt(pageNo) || 1;
+        limit = parseInt(limit) || 5;
+
+        let lead = await Lead.find({ executiveUserId: userId }).skip((pageNo - 1) * limit).limit(limit + 1);
+        const hasNext = lead.length > limit;
+
+        if (hasNext) lead.pop();
+
+        return res.status(200).json({ success: true, lead, hasNext });
+
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}
+
 export const getLeadHistory = async (req, res) => {
     try {
         let { userId } = req.user;
@@ -145,6 +241,52 @@ export const getLeadHistory = async (req, res) => {
         })
 
         return res.status(200).json({ success: true, history: leads });
+
+    } catch (er) {
+        return res.status(500).json({ success: false, message: er?.message });
+    }
+}
+
+export const getCardHistory = async (req, res) => {
+    try {
+        const { status } = req.params;
+        let { pageNo, limit } = req.query;
+        const { userId } = req.user;
+
+        pageNo = parseInt(pageNo) || 1;
+        limit = parseInt(limit) || 5;
+
+        const validStatus = ['pending', 'rejected', 'un-verified', 'failed'];
+
+        if (!validStatus.includes(status)) return res.status(400).json({ success: false, message: "Invalid status type.." });
+
+
+        let leads = await CardLead.find({ executiveUserId: userId, status }).skip((pageNo - 1) * limit).limit(limit + 1);
+
+        const hasNext = leads.length > limit;
+        if (hasNext) leads.pop();
+
+
+        let formatLead = leads?.map((i) => {
+            return {
+                _id: i?._id,
+                executiveUserId: i?.executiveUserId,
+                imagePath: `http://localhost:3001/uploads/cards/${i?.imagePath}`,
+                companyName: i?.companyName,
+                customerName: i?.customerName,
+                mobileNo: i?.mobileNo,
+                alternateMobileNo: i?.alternateMobileNo,
+                email: i?.email,
+                requirement: i?.requirement,
+                status: i?.status,
+                rejectionReason: i?.rejectionReason,
+                city: i?.city,
+                createdAt: new Date(i?.createdAt),
+            }
+        })
+
+
+        return res.status(200).json({ success: true, formatLead, hasNext });
 
     } catch (er) {
         return res.status(500).json({ success: false, message: er?.message });

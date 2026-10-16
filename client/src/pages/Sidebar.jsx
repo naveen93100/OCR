@@ -2,27 +2,34 @@ import clsx from "clsx";
 import { NavLink } from "react-router-dom";
 import {
     LayoutDashboard,
-    FileText,
-    ScanLine,
     Users,
-    CreditCard,
-    Settings,
-    ChevronRight,
+    SquareText,
+    House,
+    Clock,
+    ScanSearch,
+    BadgeCheck,
+    BadgeX,
+    ScanLine,
     X,
     LogOut,
-    UserPlus,
-    SquareText
+    ChevronRight,
 } from "lucide-react";
 
-const navItems = [
-    // { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
-    { icon: LayoutDashboard, label: "Dashboard", to: "/admin" },
-    { icon: SquareText, label: "All Leads", to: "/all-leads" },
-    { icon: Users, label: "Executive", to: "/team" },
-    // { icon: ScanLine, label: "Scans", to: "/scans" },
-];
 
-const Sidebar = ({ open, onClose, onLogout, user }) => (
+const Sidebar = ({ open, onClose, onLogout, user }) =>{
+
+    const navItems = [
+        { icon: LayoutDashboard, label: "Dashboard", to: "/admin" ,allow:['super_admin']},
+        { icon: SquareText, label: "All Leads", to: "/all-leads",allow:['super_admin'] },
+        { icon: Users, label: "Executive", to: "/team" ,allow:['super_admin']},
+        { icon: House, label: "Home", to: "",allow:['executive'] },
+        { icon: Clock, label: "Pending", to: "pending" ,allow:['executive']},
+        { icon: ScanSearch, label: "Unverified", to: "un-verified" ,allow:['executive']},
+        { icon: BadgeCheck, label: "Verified", to: "verified" ,allow:['executive']},
+        { icon: BadgeX, label: "Rejected", to: "rejected" ,allow:['executive']},
+    ];
+    
+ return(
     <>
         {/* Mobile overlay */}
         {open && (
@@ -59,7 +66,8 @@ const Sidebar = ({ open, onClose, onLogout, user }) => (
 
             {/* Nav */}
             <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-                {navItems.map(({ icon: Icon, label, badge, to }) => (
+                {navItems.map(({ icon: Icon, label, badge, to,allow }) => (
+                    allow.includes(user.role)&&(
                     <NavLink
                         key={label}
                         to={to}
@@ -97,6 +105,8 @@ const Sidebar = ({ open, onClose, onLogout, user }) => (
                             </>
                         )}
                     </NavLink>
+                )
+
                 ))}
             </nav>
 
@@ -129,5 +139,7 @@ const Sidebar = ({ open, onClose, onLogout, user }) => (
         </aside>
     </>
 );
+
+}
 
 export default Sidebar;

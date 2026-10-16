@@ -9,10 +9,12 @@ const leadSchema = mongoose.Schema(
         companyName: {
             type: String,
             trim: true,
+            default:""
         },
         customerName: {
             type: String,
             trim: true,
+            default:""
         },
         city: {
             type: String,
@@ -22,11 +24,13 @@ const leadSchema = mongoose.Schema(
         requirement: {
             type: String,
             trim: true,
+            default:""
         },
         email: {
             type: String,
             trim: true,
             unique: true,
+            default:""
         },
         mobileNo: {
             type: String,

@@ -42,10 +42,15 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "../pages/Login";
 import ExecutiveDashboard from "../pages/ExecutiveDashboard";
 import Dashboard from "../pages/Dashboard";
-import AddExecutive from "../pages/superAdmin/AddExecutive";
 import DashboardLayout from "../components/DashboardLayout";
 import AllLeads from "../pages/superAdmin/AllLeads";
 import ShowExecutiveList from "../pages/superAdmin/ShowExecutiveList";
+import ExecDashboard from "../pages/Executive/ExecDashboard";
+import History from "../pages/Executive/History";
+import Pending from "../pages/Executive/Pending";
+import Verified from "../pages/Executive/Verified";
+import Unverified from '../pages/Executive/Unverified'
+import Rejected from "../pages/Executive/Rejected";
 
 const ROLE_HOME = {
     executive: "/executive",
@@ -104,11 +109,19 @@ const AppRoutes = () => (
         <Route
             path="/executive"
             element={
-                <ProtectedRoute allowedRoles={["executive"]}>
+                <ProtectedRoute allowedRoles={["executive"]} >
                     <ExecutiveDashboard />
                 </ProtectedRoute>
             }
-        />
+        >
+
+           <Route path="" element={<ExecDashboard/>}/>
+           <Route path="pending" element={<Pending/>}/>
+           <Route path="un-verified" element={<Unverified/>}/>
+           <Route path="verified" element={<Verified/>}/>
+           <Route path="rejected" element={<Rejected/>}/>
+        </Route>
+
 
         {/* Super admin pages share Sidebar + Header via DashboardLayout */}
         <Route

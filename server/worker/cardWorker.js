@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Worker } from "bullmq";
+import { UnrecoverableError, Worker } from "bullmq";
 import { redisConnection } from "../config/redisConfig.js";
 import CardLead from "../models/cardLeadModel.js";
 import path from 'path';
@@ -33,10 +33,10 @@ export const worker = new Worker('extract', async (job) => {
 
     let extractImg = await extractImageDetails(buff);
     const stringExtract = JSON.parse(extractImg)
-    const isReadableImage = Object.values(stringExtract).every((v) => String(v) === "");
+    const isNotReadableImage = Object.values(stringExtract).every((v) => String(v) === "");
 
 
-    if (isReadableImage) throw new UnrecoverableError("No readable card details found in the image.");
+    if (isNotReadableImage) throw new UnrecoverableError("No readable card details found in the image.");
 
     const update = {
       customerName: stringExtract.customerName,
@@ -92,22 +92,23 @@ worker.on("completed", async (job) => {
 worker.on("failed", async (job, err) => {
   console.error("Job failed:", job?.id, err.message);
   if (!job) return;
-  const noRetriesLeft = job && job.attemptsMade >= (job.opts.attempts || 1);
-  if (!noRetriesLeft) return;
+  const isUnrecoverable = err.name === "UnrecoverableError";
 
-  const isFinal =
-    err.name === "UnrecoverableError" ||
+  const noRetriesLeft =
     job.attemptsMade >= (job.opts.attempts || 1);
-  if (!isFinal) return;
 
-  try {
-    await CardLead.findOneAndUpdate(
-      { _id: job.data.cardId, status: 'pending' },
-      { $set: { status: 'failed', rejectionReason: 'No readable card details found in the image.' } }
-    );
-  } catch (e) {
-    console.error("Could not mark card as failed:", e.message);
+  if (isUnrecoverable || noRetriesLeft) {
+    try {
+      await CardLead.findOneAndUpdate(
+        { _id: job.data.cardId, status: 'pending' },
+        { $set: { status: 'rejected', rejectionReason: err?.message } }
+      );
+    } catch (e) {
+      console.error("Could not mark card as failed:", e.message);
+    }
   }
+  return;
+
 });
 
 worker.on("error", (err) => {
