@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   XCircle,
   X,
+  Eye
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axiosInstance";
@@ -26,6 +27,7 @@ const Unverified = () => {
   const [editingLead, setEditingLead] = useState(null);
   const [rejectingLead, setRejectingLead] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [viewingLead, setViewingLead] = useState(null);
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -136,8 +138,8 @@ const Unverified = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to update card"
+        error.message ||
+        "Failed to update card"
       );
     } finally {
       setSaving(false);
@@ -156,7 +158,7 @@ const Unverified = () => {
     try {
       setActionId(lead._id);
 
-     const response = await api.post(`/api/v1/executive/change-status/${lead._id}`,
+      const response = await api.post(`/api/v1/executive/change-status/${lead._id}`,
         {
           status,
           ...(reason ? { rejectionReason: reason } : null),
@@ -179,8 +181,8 @@ const Unverified = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to update card status"
+        error.message ||
+        "Failed to update card status"
       );
     } finally {
       setActionId(null);
@@ -245,20 +247,6 @@ const Unverified = () => {
             />
             Refresh
           </button>
-
-          {/* <button
-            type="button"
-            onClick={downloadExcel}
-            disabled={downloading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {downloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            {downloading ? "Downloading..." : "Download Excel"}
-          </button> */}
         </div>
       </div>
 
@@ -344,6 +332,13 @@ const Unverified = () => {
 
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setViewingLead(lead)}
+                          className="inline-flex items-center gap-1 text-xs rounded-lg border px-3 py-2"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </button>
                         <button
                           type="button"
                           title="Modify card"
@@ -611,6 +606,49 @@ const Unverified = () => {
                 )}
                 Confirm Reject
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-3xl rounded-xl bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Verify Visiting Card</h2>
+
+              <button onClick={() => setViewingLead(null)}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <img
+                  src={viewingLead.imagePath}
+                  alt="Visiting card"
+                  className="max-h-[450px] w-full rounded-lg border object-contain"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <p><strong>Name:</strong> {viewingLead.customerName || "—"}</p>
+                <p><strong>Company:</strong> {viewingLead.companyName || "—"}</p>
+                <p><strong>City:</strong> {viewingLead.city || "—"}</p>
+                <p><strong>Email:</strong> {viewingLead.email || "—"}</p>
+                <p><strong>Mobile:</strong> {viewingLead.mobileNo || "—"}</p>
+                <p><strong>Requirement:</strong> {viewingLead.requirement || "—"}</p>
+
+                <button
+                  onClick={() => {
+                    openEditModal(viewingLead);
+                    setViewingLead(null);
+                  }}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-white"
+                >
+                  Edit Extracted Details
+                </button>
+              </div>
             </div>
           </div>
         </div>

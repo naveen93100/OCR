@@ -5,6 +5,7 @@ import XLSX from 'xlsx';
 import { createBulkCardLead, createCardLead } from '../services/cardExtraction.js';
 import CardLead from '../models/cardLeadModel.js';
 import mongoose from 'mongoose';
+import { sendVerificationWhatsApp } from '../config/Aisensy.js';
 
 export const getExecutiveDashboardData = async (req, res) => {
     try {
@@ -92,7 +93,7 @@ export const updateCardStatus = async (req, res) => {
             "failed": []
         };
 
-        if(card.status==='verified') return res.status(400).json({success:false,message:"Lead is already verified.."});
+        if (card.status === 'verified') return res.status(400).json({ success: false, message: "Lead is already verified.." });
 
         if (!Object.hasOwn(validStatus, card.status) || !validStatus[card.status].includes(status)) {
             return res.status(400).json({ success: false, message: "Invalid Status type.." });
@@ -123,6 +124,11 @@ export const updateCardStatus = async (req, res) => {
                 requirement: updated?.requirement,
                 executiveUserId: updated.executiveUserId,
             });
+
+            if (updated?.mobileNo) {
+                await sendVerificationWhatsApp(updated?.mobileNo)
+            }
+
             return res.status(200).json({ success: true, message: "Status has changed..", updated });
         }
 
@@ -271,7 +277,8 @@ export const getCardHistory = async (req, res) => {
             return {
                 _id: i?._id,
                 executiveUserId: i?.executiveUserId,
-                imagePath: `http://localhost:3001/uploads/cards/${i?.imagePath}`,
+                // imagePath: `http://localhost:3001/uploads/cards/${i?.imagePath}`,
+                imagePath: `https://ocr.gautamsolar.com/uploads/cards/${i?.imagePath}`,
                 companyName: i?.companyName,
                 customerName: i?.customerName,
                 mobileNo: i?.mobileNo,
