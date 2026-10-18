@@ -43,6 +43,11 @@ const cardLeadSchema = mongoose.Schema({
         trim: true,
         default: ""
     },
+    contactType: {
+        type: String,
+        enum: ['supplier', 'non-supplier'],
+        default: 'supplier'
+    },
     status: {
         type: String,
         enum: ['pending', 'rejected', 'verified', 'un-verified', 'failed'],
@@ -51,7 +56,7 @@ const cardLeadSchema = mongoose.Schema({
     rejectionReason: {
         type: String,
         trim: true,
-        default:null
+        default: null
     }
 }, { timestamps: true });
 

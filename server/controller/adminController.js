@@ -47,7 +47,10 @@ export const getAllLeads = async (req, res) => {
                         mobileNo: 1,
                         executiveName: '$executive.name',
                         executiveUserId: '$executive.userId',
-                        createdAt: 1
+                        alternateMobileNo:1,
+                        contactType:1,
+                        companyName:1,
+                        createdAt: 1,
                     }
                 }
             ])
@@ -197,10 +200,14 @@ export const downloadExcel = async (req, res) => {
 
         let excelFormat = leads.map((i) => {
             return {
+                executiveUserId: i?.executiveUserId,
                 customerName: i?.customerName || "N/A",
                 city: i?.city || "N/A",
                 requirement: i?.requirement || "N/A",
                 mobileNo: i?.mobileNo || "N/A",
+                alternateMobileNo: i?.alternateMobileNo || 'N/A',
+                companyName: i?.companyName || 'N/A',
+                contactType: i?.contactType,
                 createdAt: new Date(i?.createdAt),
             };
         });
@@ -325,7 +332,7 @@ export const exportExecutiveLeads = async (req, res) => {
                 });
 
         const leads = await Lead.find({ executiveUserId })
-            .select("customerName city requirement mobileNo createdAt")
+            .select("customerName city requirement mobileNo createdAt alternateMobileNo contactType companyName")
             .lean();
 
         const formatLeads = leads?.map((i) => {
@@ -334,7 +341,10 @@ export const exportExecutiveLeads = async (req, res) => {
                 city: i?.city || 'N/A',
                 requirement: i?.requirement || 'N/A',
                 mobileNo: i?.mobileNo || 'N/A',
-                createdAt: i?.createdAt
+                createdAt: i?.createdAt,
+                alternateMobileNo: i?.alternateMobileNo || 'N/A',
+                contactType: i?.contactType || 'N/A',
+                companyName: i?.companyName || 'N/A'
             }
         })
 

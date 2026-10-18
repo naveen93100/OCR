@@ -9,12 +9,12 @@ const leadSchema = mongoose.Schema(
         companyName: {
             type: String,
             trim: true,
-            default:""
+            default: ""
         },
         customerName: {
             type: String,
             trim: true,
-            default:""
+            default: ""
         },
         city: {
             type: String,
@@ -24,18 +24,23 @@ const leadSchema = mongoose.Schema(
         requirement: {
             type: String,
             trim: true,
-            default:""
+            default: ""
         },
         email: {
             type: String,
             trim: true,
             unique: true,
-            default:""
+            default: ""
         },
         mobileNo: {
             type: String,
             trim: true,
             unique: true,
+        },
+        contactType: {
+            type: String,
+            enum: ['supplier', 'non-supplier'],
+            default: 'supplier'
         },
         alternateMobileNo: {
             type: String,

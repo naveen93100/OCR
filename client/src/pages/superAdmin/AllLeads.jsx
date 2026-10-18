@@ -399,6 +399,8 @@ const AllLeads = () => {
                                 ["Customer", selectedLead.customerName],
                                 ["Company", selectedLead.companyName],
                                 ["Mobile", selectedLead.mobileNo],
+                                ["alternate.Mobile.No", selectedLead.alternateMobileNo],
+                                ["customer.type", selectedLead.contactType],
                                 ["Email", selectedLead.email],
                                 ["City", selectedLead.city],
                                 ["Requirement", selectedLead.requirement],
@@ -410,7 +412,7 @@ const AllLeads = () => {
                                     <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                                         {label}
                                     </p>
-                                    <p className="mt-1 break-words text-sm font-medium text-slate-800">
+                                    <p className="mt-1 capitalize break-words text-sm font-medium text-slate-800">
                                         {value || "—"}
                                     </p>
                                 </div>

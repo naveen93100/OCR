@@ -19,7 +19,6 @@ const Unverified = () => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
   const [hasNext, setHasNext] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionId, setActionId] = useState(null);
@@ -36,6 +35,8 @@ const Unverified = () => {
     requirement: "",
     email: "",
     mobileNo: "",
+    contactType: "",
+    alternateMobileNo: ""
   });
 
   const limit = 6;
@@ -79,10 +80,6 @@ const Unverified = () => {
     );
   });
 
-  const handleSearch = (value) => {
-    setSearch(value);
-  };
-
   const openEditModal = (lead) => {
     setEditingLead(lead);
 
@@ -93,6 +90,8 @@ const Unverified = () => {
       requirement: lead.requirement || "",
       email: lead.email || "",
       mobileNo: lead.mobileNo || lead.mobileno || "",
+      contactType: lead?.contactType || "",
+      alternateMobileNo: lead?.alternateMobileNo || ""
     });
   };
 
@@ -125,6 +124,8 @@ const Unverified = () => {
           requirement: formData.requirement,
           email: formData.email,
           mobileNo: formData.mobileNo,
+          contactType: formData?.contactType,
+          alternateMobileNo:formData?.alternateMobileNo
         }
       );
 
@@ -257,9 +258,11 @@ const Unverified = () => {
               <tr>
                 <th className="px-5 py-4 font-semibold">S.No.</th>
                 <th className="px-5 py-4 font-semibold">Customer</th>
+                <th className="px-5 py-4 font-semibold">contact.Type</th>
                 <th className="px-5 py-4 font-semibold">Company</th>
                 <th className="px-5 py-4 font-semibold">City</th>
                 <th className="px-5 py-4 font-semibold">Mobile</th>
+                <th className="px-5 py-4 font-semibold text-xs">alternate.mobile</th>
                 <th className="px-5 py-4 font-semibold">Email</th>
                 <th className="px-5 py-4 font-semibold">Added On</th>
                 <th className="px-5 py-4 font-semibold">Status</th>
@@ -301,6 +304,9 @@ const Unverified = () => {
                     <td className="px-5 py-4 font-medium text-slate-900">
                       {lead.customerName || "—"}
                     </td>
+                    <td className="px-5 py-4 font-medium capitalize text-slate-900">
+                      {lead.contactType || "—"}
+                    </td>
 
                     <td className="px-5 py-4 text-slate-600">
                       {lead.companyName || "—"}
@@ -312,6 +318,9 @@ const Unverified = () => {
 
                     <td className="px-5 py-4 text-slate-600">
                       {lead.mobileNo || lead.mobileno || "—"}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {lead.alternateMobileNo || lead.alternateMobileNo || "—"}
                     </td>
 
                     <td className="px-5 py-4 text-slate-600">
@@ -334,7 +343,7 @@ const Unverified = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setViewingLead(lead)}
-                          className="inline-flex items-center gap-1 text-xs rounded-lg border px-3 py-2"
+                          className="inline-flex items-center gap-1 bg-orange-50 border-1 border-orange-500 hover:bg-orange-100 transition-all ease-linear text-xs rounded-lg  text-slate-700   px-3 py-2 cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5" />
                           View
@@ -343,7 +352,7 @@ const Unverified = () => {
                           type="button"
                           title="Modify card"
                           onClick={() => openEditModal(lead)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                          className="inline-flex items-center gap-1 rounded-lg bg-sky-50 border border-sky-500  px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-sky-100 cursor-pointer"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           Modify
@@ -356,7 +365,7 @@ const Unverified = () => {
                           onClick={() =>
                             updateCardStatus(lead, "verified")
                           }
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border-1 border-emerald-500 px-2.5 py-2 text-xs font-semibold  text-slate-700  hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
                         >
                           {actionId === lead._id ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -374,7 +383,7 @@ const Unverified = () => {
                             setRejectingLead(lead);
                             setRejectReason("");
                           }}
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-2.5 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 border-1 border-red-500 px-2.5 py-2 text-xs font-semibold  text-slate-700  hover:bg-red-100 disabled:opacity-50 cursor-pointer"
                         >
                           <XCircle className="h-3.5 w-3.5" />
                           Reject
@@ -494,6 +503,19 @@ const Unverified = () => {
                   />
                 </label>
 
+                <label className="space-y-1.5">
+                  <span className="text-sm font-medium text-slate-700">
+                    Alternate Number
+                  </span>
+                  <input
+                    name="alternateMobileNo"
+                    type="tel"
+                    value={formData.alternateMobileNo}
+                    onChange={handleFormChange}
+                    className={inputClass}
+                  />
+                </label>
+
                 <label className="space-y-1.5 sm:col-span-2">
                   <span className="text-sm font-medium text-slate-700">
                     Email
@@ -505,6 +527,23 @@ const Unverified = () => {
                     onChange={handleFormChange}
                     className={inputClass}
                   />
+                  <label className="space-y-1.5">
+                    <span className="text-sm font-medium text-slate-700">
+                      Contact Type
+                    </span>
+
+                    <select
+                      name="contactType"
+                      value={formData.contactType}
+                      onChange={handleFormChange}
+                      className={inputClass}
+                      required
+                    >
+                      <option value="">Select Contact Type</option>
+                      <option value="supplier">Supplier</option>
+                      <option value="non-supplier">Non-Supplier</option>
+                    </select>
+                  </label>
                 </label>
 
                 <label className="space-y-1.5 sm:col-span-2">
@@ -637,14 +676,16 @@ const Unverified = () => {
                 <p><strong>City:</strong> {viewingLead.city || "—"}</p>
                 <p><strong>Email:</strong> {viewingLead.email || "—"}</p>
                 <p><strong>Mobile:</strong> {viewingLead.mobileNo || "—"}</p>
+                <p><strong>AlternateMobile:</strong> {viewingLead.alternateMobileNo || "—"}</p>
                 <p><strong>Requirement:</strong> {viewingLead.requirement || "—"}</p>
+                <p><strong>ContactType:</strong> {viewingLead.contactType || "—"}</p>
 
                 <button
                   onClick={() => {
                     openEditModal(viewingLead);
                     setViewingLead(null);
                   }}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-white"
+                  className="rounded-lg bg-sky-500 px-4 py-2 text-white"
                 >
                   Edit Extracted Details
                 </button>

@@ -22,9 +22,10 @@ app.use(cookieParser());
 //         credentials: true,
 //     }),
 // );
+
 app.use(
     cors({
-        origin: ["https://ocr.gautamsolar.com"],
+        origin: ["https://ocr.gautamsolar.com","http://192.168.137.1:5173", "http://localhost:5173"],
         credentials: true,
     }),
 );

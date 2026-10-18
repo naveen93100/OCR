@@ -129,9 +129,11 @@ const Verified = () => {
               <tr>
                 <th className="px-5 py-4 font-semibold">S.No.</th>
                 <th className="px-5 py-4 font-semibold">Customer</th>
+                <th className="px-5 py-4 font-semibold">Customer.Type</th>
                 <th className="px-5 py-4 font-semibold">Company</th>
                 <th className="px-5 py-4 font-semibold">City</th>
                 <th className="px-5 py-4 font-semibold">Mobile</th>
+                <th className="px-5 py-4 font-semibold">alternate.Mobile</th>
                 <th className="px-5 py-4 font-semibold">Email</th>
                 <th className="px-5 py-4 font-semibold">Verified On</th>
                 <th className="px-5 py-4 font-semibold">Status</th>
@@ -171,6 +173,9 @@ const Verified = () => {
                     <td className="px-5 py-4 font-medium text-slate-900">
                       {lead.customerName || "—"}
                     </td>
+                    <td className="px-5 py-4 font-medium capitalize text-slate-900">
+                      {lead.contactType || "—"}
+                    </td>
                     <td className="px-5 py-4 text-slate-600">
                       {lead.companyName || "—"}
                     </td>
@@ -179,6 +184,9 @@ const Verified = () => {
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {lead.mobileNo || "—"}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {lead.alternateMobileNo || "—"}
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {lead.email || "—"}

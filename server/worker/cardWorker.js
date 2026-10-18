@@ -43,24 +43,50 @@ export const worker = new Worker('extract', async (job) => {
       companyName: stringExtract.companyName,
       city: stringExtract.city,
       requirement: stringExtract.requirement,
-      email: stringExtract.email,
+      email: stringExtract?.email?.trim()?.toLowerCase() || "",
       mobileNo: cleanMobileNumber(stringExtract.mobileno),
       alternateMobileNo: cleanMobileNumber(stringExtract.alternateMobileNo),
       status: 'un-verified',
     };
 
-    let isExist = await CardLead.findOne({
-      _id: { $ne: cardId }, $or: [
-        ...(update.email ? [{ email: update.email }] : []),
-        ...(update.mobileNo ? [{ mobileNo: update.mobileNo }] : [])]
-    })
+    let duplicate = [];
 
-    if (isExist) {
-      await CardLead.findOneAndUpdate(
-        { _id: cardId, status: 'pending' },
-        { $set: { ...update, status: 'rejected', rejectionReason: 'Duplicate Card Details found...' } },
-        { runValidators: true }
+    if (update.email) {
+      duplicate.push({ email: update.email })
+    }
+
+    if (update.mobileNo) {
+      duplicate.push(
+        { mobileNo: update.mobileNo },
+        { alternateMobileNo: update.mobileNo }
       );
+    }
+    if (update.alternateMobileNo) {
+      duplicate.push(
+        { mobileNo: update.alternateMobileNo },
+        { alternateMobileNo: update.alternateMobileNo }
+      );
+
+    }
+
+    if (duplicate.length > 0) {
+
+      let isExist = await CardLead.findOne({
+        _id: { $ne: cardId }, $or: duplicate
+      });
+
+      if (isExist) {
+        await CardLead.findOneAndUpdate(
+          { _id: cardId, status: 'pending' },
+          { $set: { ...update, status: 'rejected', rejectionReason: 'Duplicate Card Details found...' } },
+          { runValidators: true }
+        );
+
+        return {
+          cardId: job.data.cardId,
+          extractedData: stringExtract
+        }
+      }
     }
 
     await CardLead.findOneAndUpdate(
@@ -73,7 +99,6 @@ export const worker = new Worker('extract', async (job) => {
       cardId: job.data.cardId,
       extractedData: stringExtract
     }
-
   }
   return { ok: true };
 },
