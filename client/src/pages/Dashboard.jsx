@@ -115,10 +115,7 @@ const Dashboard = () => {
                                 </p>
 
                                 <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-
-
                                     {totalLeads}
-
                                 </h2>
 
                                 <p className="mt-2 text-xs text-slate-500">

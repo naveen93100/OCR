@@ -197,7 +197,7 @@ const ShowExecutiveList = () => {
 
                                         <button
                                             onClick={() => handleExport(member.userId)}
-                                            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 transition-all duration-200 hover:border-green-300 hover:bg-green-100 hover:shadow-sm active:scale-95"
+                                            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-2 py-2.5 text-xs text-green-700 transition-all duration-200 hover:border-green-300 hover:bg-green-100 hover:shadow-sm active:scale-95"
                                         >
                                             <FileSpreadsheet size={17} />
                                             Export Data

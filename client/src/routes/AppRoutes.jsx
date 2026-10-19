@@ -123,7 +123,6 @@ const AppRoutes = () => (
         </Route>
 
 
-        {/* Super admin pages share Sidebar + Header via DashboardLayout */}
         <Route
             element={
                 <ProtectedRoute allowedRoles={["super_admin"]}>

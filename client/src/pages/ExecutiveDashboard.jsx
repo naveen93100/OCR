@@ -407,6 +407,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../api/axiosInstance";
 import Sidebar from "./Sidebar";
+import Header from "../components/Header";
 
 const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 // Change this if you mount the layout at a different parent route.
@@ -467,71 +468,25 @@ export default function ExecutiveLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
-      <aside className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
-        <nav aria-label="Executive navigation" className="flex gap-2 overflow-x-auto p-3 lg:flex-1 lg:flex-col">
-          <Sidebar
-            open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            onLogout={handleLogout}
-            user={user}
-          />
-        </nav>
+   <div className="min-h-screen bg-slate-50 text-slate-900">
+    <aside className="bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-slate-200">
+      
+            <Sidebar
+                open={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                onLogout={handleLogout}
+                user={user}
+            />
+     
+    </aside>
 
-        <div className="hidden border-t border-slate-100 p-5 text-xs text-slate-400 lg:block">
-          Card scanning &amp; tracking
-        </div>
-      </aside>
+    <div className="flex min-h-screen min-w-0 flex-col lg:pl-64">
+        <Header onMenuClick={setSidebarOpen} user={user} />
 
-      <div className="min-w-0 flex-1 lg:ml-64">
-
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            {/* Hamburger: visible only on mobile */}
-            <button
-              type="button"
-              onClick={() => setSidebarOpen((open) => !open)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 lg:hidden"
-              aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
-              aria-expanded={sidebarOpen}
-            >
-              {sidebarOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </button>
-
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-bold">
-                {currentItem?.label || "Executive Console"}
-              </h2>
-              <p className="truncate text-xs text-slate-500">
-                Hello, {displayName}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:opacity-50"
-          >
-            {loggingOut ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut className="h-4 w-4" />
-            )}
-            <span className="hidden sm:inline">Logout</span>
-          </button>
-        </header>
-
-
-        <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-          <Outlet />
+        <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-6">
+            <Outlet />
         </main>
-      </div>
     </div>
+</div>
   );
 }
