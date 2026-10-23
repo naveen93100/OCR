@@ -125,7 +125,7 @@ const Unverified = () => {
           email: formData.email,
           mobileNo: formData.mobileNo,
           contactType: formData?.contactType,
-          alternateMobileNo:formData?.alternateMobileNo
+          alternateMobileNo: formData?.alternateMobileNo
         }
       );
 
@@ -650,47 +650,67 @@ const Unverified = () => {
         </div>
       )}
 
+
+
       {viewingLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-3xl rounded-xl bg-white p-5 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4">
+          <div className="flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+
+            {/* Header */}
+            <div className="flex shrink-0 items-center justify-between border-b px-5 py-4">
               <h2 className="text-lg font-semibold">Verify Visiting Card</h2>
 
-              <button onClick={() => setViewingLead(null)}>
+              <button
+                type="button"
+                onClick={() => setViewingLead(null)}
+                className="shrink-0 rounded-lg p-2 hover:bg-gray-100"
+              >
                 <X size={22} />
               </button>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <img
-                  src={viewingLead.imagePath}
-                  alt="Visiting card"
-                  className="max-h-[450px] w-full rounded-lg border object-contain"
-                />
-              </div>
+            {/* Scrollable content */}
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <div className="grid gap-5 md:grid-cols-2">
 
-              <div className="space-y-3">
-                <p><strong>Name:</strong> {viewingLead.customerName || "—"}</p>
-                <p><strong>Company:</strong> {viewingLead.companyName || "—"}</p>
-                <p><strong>City:</strong> {viewingLead.city || "—"}</p>
-                <p><strong>Email:</strong> {viewingLead.email || "—"}</p>
-                <p><strong>Mobile:</strong> {viewingLead.mobileNo || "—"}</p>
-                <p><strong>AlternateMobile:</strong> {viewingLead.alternateMobileNo || "—"}</p>
-                <p><strong>Requirement:</strong> {viewingLead.requirement || "—"}</p>
-                <p><strong>ContactType:</strong> {viewingLead.contactType || "—"}</p>
+                {/* Visiting card image */}
+                <div className="flex items-start justify-center">
+                  <img
+                    src={viewingLead.imagePath}
+                    alt="Visiting card"
+                    className="max-h-[40vh] w-full rounded-lg border object-contain"
+                  />
+                </div>
 
-                <button
-                  onClick={() => {
-                    openEditModal(viewingLead);
-                    setViewingLead(null);
-                  }}
-                  className="rounded-lg bg-sky-500 px-4 py-2 text-white"
-                >
-                  Edit Extracted Details
-                </button>
+                {/* Extracted details */}
+                <div className="space-y-3 break-words">
+                  <p><strong>Name:</strong> {viewingLead.customerName || "—"}</p>
+                  <p><strong>Company:</strong> {viewingLead.companyName || "—"}</p>
+                  <p><strong>City:</strong> {viewingLead.city || "—"}</p>
+                  <p><strong>Email:</strong> {viewingLead.email || "—"}</p>
+                  <p><strong>Mobile:</strong> {viewingLead.mobileNo || "—"}</p>
+                  <p><strong>Alternate Mobile:</strong> {viewingLead.alternateMobileNo || "—"}</p>
+                  <p><strong>Requirement:</strong> {viewingLead.requirement || "—"}</p>
+                  <p><strong>Contact Type:</strong> {viewingLead.contactType || "—"}</p>
+                </div>
+
               </div>
             </div>
+
+            {/* Footer */}
+            <div className="flex shrink-0 justify-end border-t bg-white px-5 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  openEditModal(viewingLead);
+                  setViewingLead(null);
+                }}
+                className="rounded-lg bg-sky-500 px-4 py-2 text-white hover:bg-sky-600"
+              >
+                Edit Extracted Details
+              </button>
+            </div>
+
           </div>
         </div>
       )}

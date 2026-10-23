@@ -5,19 +5,21 @@ import { isAdmin } from '../middleware/isAdmin.js';
 
 const router = express.Router();
 
+
 router.get('/',getDashBoardData);
-router.get('/all-leads',getAllLeads);
+router.get('/all-leads',isAdmin,getAllLeads);
 router.get('/all-executive',isAdmin,getAllExecutive);
 
-router.post('/create-admin',createAdmin);
-router.post('/create-executive-person',createMarketingPerson);
+
+router.post('/create-admin',isAdmin,createAdmin);
+router.post('/create-executive-person',isAdmin,createMarketingPerson);
 
 
-router.get('/download-excel',downloadExcel);
+router.get('/download-excel',isAdmin,downloadExcel);
 
-router.get('/:executiveUserId/export',exportExecutiveLeads);
+router.get('/:executiveUserId/export',isAdmin,exportExecutiveLeads);
 
-router.get('/:executiveUserId',getExecutiveLeads);
+router.get('/:executiveUserId',isAdmin,getExecutiveLeads);
 
 
 export default router;

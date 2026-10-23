@@ -33,7 +33,7 @@ const Header = ({
                         </button>
                     }
 
-                    {/* User pill */}
+                    {/* User */}
                     <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-red-600 to-red-400 text-xs font-bold text-white">
                             {user?.name?.[0]?.toUpperCase() || "U"}
@@ -42,7 +42,7 @@ const Header = ({
                             <p className="text-xs capitalize font-semibold text-slate-900">
                                 {user?.name || "User"}
                             </p>
-                            <p className="text-[10px] capitalize text-slate-500">
+                            <p className="text-[10px] ca pitalize text-slate-500">
                                 {user?.role?.replace("_", " ") || "Member"}
                             </p>
                         </div>

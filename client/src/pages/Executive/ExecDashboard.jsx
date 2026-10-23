@@ -6,9 +6,7 @@ import {
     XCircle,
     CheckCircle2,
     ShieldQuestion,
-    RefreshCw,
     ScanLine,
-    Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -16,19 +14,6 @@ import ScanPanel from "../../components/executive/ScanPanel";
 import api from "../../api/axiosInstance";
 
 const REFRESH_MS = 10000;
-
-const STATUS_STYLES = {
-    pending: "bg-amber-50 text-amber-700",
-    unverified: "bg-blue-50 text-blue-700",
-    verified: "bg-emerald-50 text-emerald-700",
-    rejected: "bg-red-50 text-red-700",
-};
-
-const normalizeStatus = (status) =>
-    String(status || "unknown")
-        .trim()
-        .toLowerCase()
-        .replace(/[\s_-]/g, "");
 
 const getUser = () => {
     try {
@@ -43,15 +28,6 @@ const clearSession = () => {
     localStorage.removeItem("user");
 };
 
-const formatDate = (value) => {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-        ? "—"
-        : date.toLocaleString("en-IN");
-};
 
 function StatCard({ icon: Icon, label, value, loading, active, onClick }) {
     return (
@@ -59,8 +35,8 @@ function StatCard({ icon: Icon, label, value, loading, active, onClick }) {
             type="button"
             onClick={onClick}
             className={`rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5 ${active
-                    ? "border-red-300 ring-2 ring-red-100"
-                    : "border-slate-200"
+                ? "border-red-300 ring-2 ring-red-100"
+                : "border-slate-200"
                 }`}
         >
             <div className="flex items-center justify-between gap-2">
@@ -81,8 +57,6 @@ export default function ExecutiveDashboard() {
     const navigate = useNavigate();
     const user = useMemo(getUser, []);
 
-    const [cards, setCards] = useState([]);
-    const [pendingCards, setPendingCards] = useState([]);
 
     const [dashboardData, setDashboardData] = useState({
         total: 0,
@@ -93,11 +67,7 @@ export default function ExecutiveDashboard() {
     });
 
     const [loadingDashboard, setLoadingDashboard] = useState(true);
-    const [loadingHistory, setLoadingHistory] = useState(true);
-    const [loadingPending, setLoadingPending] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
 
-    const [historyError, setHistoryError] = useState("");
     const [pendingError, setPendingError] = useState("");
 
     const [activeFilter, setActiveFilter] = useState("all");
@@ -215,19 +185,6 @@ export default function ExecutiveDashboard() {
 
                 if (!mounted.current || controller.signal.aborted) return;
 
-                setPendingCards(
-                    [...rows]
-                        .map((card) => ({
-                            ...card,
-                            status: card.status || "pending",
-                        }))
-                        .sort(
-                            (a, b) =>
-                                (Date.parse(b.createdAt) || 0) -
-                                (Date.parse(a.createdAt) || 0)
-                        )
-                );
-
                 setPendingError("");
             } catch (err) {
                 if (controller.signal.aborted || !mounted.current) return;
@@ -243,7 +200,6 @@ export default function ExecutiveDashboard() {
                     mounted.current &&
                     pendingController.current === controller
                 ) {
-                    setLoadingPending(false);
                     pendingController.current = null;
                 }
             }
@@ -365,32 +321,6 @@ export default function ExecutiveDashboard() {
         }
     };
 
-    // Merge history and pending records without duplicate IDs.
-    const allCards = useMemo(() => {
-        const uniqueCards = new Map();
-
-        [...cards, ...pendingCards].forEach((card, index) => {
-            const id = card._id || card.id;
-
-            if (id) {
-                const key = String(id);
-                const existing = uniqueCards.get(key);
-
-                uniqueCards.set(key, {
-                    ...existing,
-                    ...card,
-                });
-            } else {
-                uniqueCards.set(`unknown-${index}`, card);
-            }
-        });
-
-        return [...uniqueCards.values()].sort(
-            (a, b) =>
-                (Date.parse(b.createdAt) || 0) -
-                (Date.parse(a.createdAt) || 0)
-        );
-    }, [cards, pendingCards]);
 
     // Dashboard counts come from the dashboard API.
     const statItems = [
@@ -426,26 +356,9 @@ export default function ExecutiveDashboard() {
         },
     ];
 
-    // Filter recent cards independently of the API summary counts.
-    const visibleCards = useMemo(() => {
-        const filtered =
-            activeFilter === "all"
-                ? allCards
-                : allCards.filter(
-                    (card) =>
-                        normalizeStatus(card.status) === activeFilter
-                );
-
-        return filtered.slice(0, 10);
-    }, [allCards, activeFilter]);
 
     const statsLoading = loadingDashboard;
-    const cardsLoading = loadingHistory || loadingPending;
 
-    const handleRefresh = () => {
-        void getDashboardData();
-        void getPendingCards();
-    };
 
     return (
         <main className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6 lg:p-8">
@@ -516,16 +429,6 @@ export default function ExecutiveDashboard() {
                         >
                             View Pending
                         </button>
-                    </div>
-                )}
-
-                {/* API errors */}
-                {historyError && (
-                    <div
-                        role="alert"
-                        className="rounded-xl bg-red-50 p-4 text-sm text-red-700"
-                    >
-                        Card history: {historyError}
                     </div>
                 )}
 

@@ -9,11 +9,6 @@ export const getAllLeads = async (req, res) => {
         pageNo = parseInt(pageNo) || 1
         limit = parseInt(limit) || 40
 
-        const totalLead = await Lead.countDocuments();
-
-
-
-
         const [total, leads] = await Promise.all([
             Lead.countDocuments(),
             Lead.aggregate([
