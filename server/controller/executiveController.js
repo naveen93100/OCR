@@ -6,6 +6,7 @@ import { createBulkCardLead, createCardLead } from '../services/cardExtraction.j
 import CardLead from '../models/cardLeadModel.js';
 import mongoose from 'mongoose';
 import { sendVerificationWhatsApp } from '../config/Aisensy.js';
+import { sendEnquiry } from '../utils/sendEnquiry.js';
 
 export const getExecutiveDashboardData = async (req, res) => {
     try {
@@ -100,6 +101,10 @@ export const updateCardStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid Status type.." });
         }
 
+        if (card && !card?.state?.trim()) return res.status(400).json({ success: false, message: "State is Required.." });
+
+        if (!card?.email?.trim() && !card?.mobileNo?.trim()) return res.status(400).json({ success: false, message: "Email or mobileNo is required.." });
+
         const duplicateConditions = [];
 
         if (card.email) {
@@ -114,8 +119,9 @@ export const updateCardStatus = async (req, res) => {
 
 
         if (status === 'verified') {
-            let exist = await Lead.findOne({ $or: duplicateConditions });
-            if (exist) return res.status(409).json({ success: true, message: "A lead already exists with this email or mobile number.." })
+
+            // let exist = await Lead.findOne({ $or: duplicateConditions });
+            // if (exist) return res.status(409).json({ success: true, message: `A lead already exist with this email or mobile number to ${exist?.executiveUserId}` })
 
             if (!card?.mobileNo) return res.status(400).json({ success: false, message: "Cannot verify without mobileNo.." });
 
@@ -123,15 +129,22 @@ export const updateCardStatus = async (req, res) => {
 
             let updated = await CardLead.findByIdAndUpdate(cardId, { $set: { status, rejectionReason } }, { new: true, runValidators: true });
 
+            // send data to crm
+
+              let sendData=await sendEnquiry(updated);
+
+              console.log(sendData);
+
             await Lead.create({
                 customerName: updated?.customerName,
                 companyName: updated?.companyName,
-                mobileNo: updated.mobileNo,
-                email: updated.email,
-                city: updated.city,
+                mobileNo: updated?.mobileNo,
+                email: updated?.email,
+                city: updated?.city,
+                state: updated?.state,
                 requirement: updated?.requirement,
                 executiveUserId: updated.executiveUserId,
-                contactType: updated.contactType
+                contactType: updated?.contactType
             });
 
             if (updated?.mobileNo && updated?.contactType === 'non-supplier') {
@@ -153,79 +166,293 @@ export const updateCardStatus = async (req, res) => {
     }
 }
 
+// export const updateCard = async (req, res) => {
+//     try {
+//         let { cardId } = req.params;
+//         let { userId } = req.user;
+
+//         if (!cardId || !mongoose.isValidObjectId(cardId)) return res.status(400).json({ success: false, message: "Invalid Card Id.." });
+
+//         let { customerName, companyName, city, requirement, email, mobileNo, contactType, alternateMobileNo, state } = req.body;
+
+//         if (!city) return res.status(400).json({ success: false, message: "City  is required.." });
+
+//         if (!mobileNo) return res.status(400).json({ success: false, message: "MobileNo is required.." });
+
+
+//         const mobileNoRegx = /^[6-9]\d{9}$/;
+//         if (!mobileNoRegx.test(mobileNo)) return res.status(400).json({ success: false, message: "Invalid MobileNo.." });
+
+
+//         if (email) {
+//             const emailRegx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//             if (!emailRegx.test(email)) return res.status(400).json({ success: false, message: "Invalid email address.." });
+//         }
+
+//         let updateLead = {};
+
+//         if (customerName) updateLead.customerName = customerName;
+//         if (companyName) updateLead.companyName = companyName;
+//         if (city) updateLead.city = city;
+//         if (requirement) updateLead.requirement = requirement;
+//         if (state) updateLead.state = state;
+
+
+//         const normalizedEmail = email?.trim().toLowerCase() || "";
+
+//         if (normalizedEmail) {
+//             const emailRegx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+//             if (!emailRegx.test(normalizedEmail)) {
+//                 return res.status(400).json({
+//                     success: false,
+//                     message: "Invalid email address."
+//                 });
+//             }
+
+//             const emailExist = await CardLead.findOne({
+//                 email: normalizedEmail,
+//                 _id: { $ne: cardId }
+//             });
+
+//             if (emailExist) {
+//                 return res.status(409).json({
+//                     success: false,
+//                     message: "Email already exists."
+//                 });
+//             }
+
+//             updateLead.email = normalizedEmail;
+//         } else if (email !== undefined) {
+//             updateLead.email = undefined;
+//         }
+
+//         if (mobileNo) {
+
+//             const isMobileExist = await CardLead.findOne({ _id: { $ne: cardId }, $or: [{ mobileNo }, { alternateMobileNo: mobileNo }] });
+
+//             if (isMobileExist) {
+//                 return res.status(409).json({ success: false, message: "MobileNo already exists.." });
+//             }
+//             updateLead.mobileNo = mobileNo;
+
+//         }
+
+//         if (alternateMobileNo) {
+//             const mobileNoRegx = /^[6-9]\d{9}$/;
+//             if (!mobileNoRegx.test(alternateMobileNo)) return res.status(400).json({ success: false, message: "Invalid Alternate MobileNo.." });
+
+//             const isMobileExist = await CardLead.findOne({ _id: { $ne: cardId }, $or: [{ alternateMobileNo }, { mobileNo: alternateMobileNo }] });
+
+//             if (isMobileExist) {
+//                 return res.status(409).json({ success: false, message: "Alternate mobile number already exists.." });
+//             }
+//             updateLead.alternateMobileNo = alternateMobileNo;
+
+//         }
+
+//         updateLead.contactType = contactType;
+
+//         const update = await CardLead.findOneAndUpdate(
+//             { _id: cardId, executiveUserId: userId, status: 'un-verified' },
+//             { $set: updateLead },
+//             { returnDocument: 'after', runValidators: true }
+//         );
+
+//         if (!update) return res.status(404).json({ success: false, message: "Card not found or cannot be edited." });
+
+//         return res.status(200).json({ success: true, message: "Lead Updated successfully..", update });
+
+
+//     } catch (er) {
+//         return res.status(500).json({ success: false, message: er?.message });
+//     }
+// }
+
+
 export const updateCard = async (req, res) => {
     try {
-        let { cardId } = req.params;
-        let { userId } = req.user;
+        const { cardId } = req.params;
+        const { userId } = req.user;
 
-        if (!cardId || !mongoose.isValidObjectId(cardId)) return res.status(400).json({ success: false, message: "Invalid Card Id.." });
-
-        let { customerName, companyName, city, requirement, email, mobileNo, contactType, alternateMobileNo } = req.body;
-
-        if (!city || !mobileNo) return res.status(400).json({ success: false, message: "City and MobileNo is required.." });
-
-
-        const mobileNoRegx = /^[6-9]\d{9}$/;
-        if (!mobileNoRegx.test(mobileNo)) return res.status(400).json({ success: false, message: "Invalid MobileNo.." });
-
-
-        if (email) {
-            const emailRegx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegx.test(email)) return res.status(400).json({ success: false, message: "Invalid email address.." });
+        if (!cardId || !mongoose.isValidObjectId(cardId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Card Id."
+            });
         }
 
-        let updateLead = {};
+        const {
+            customerName,
+            companyName,
+            city,
+            requirement,
+            email,
+            mobileNo,
+            contactType,
+            alternateMobileNo,
+            state
+        } = req.body;
 
-        if (customerName) updateLead.customerName = customerName;
-        if (companyName) updateLead.companyName = companyName;
-        if (city) updateLead.city = city;
-        if (requirement) updateLead.requirement = requirement;
-        if (email) {
-            let emailExist = await CardLead.findOne({ email, _id: { $ne: cardId } });
-            console.log(emailExist);
-            if (emailExist) return res.status(409).json({ success: false, message: "Email is already exist.." });
-
-            updateLead.email = email;
+        if (!city?.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "City is required."
+            });
         }
-        if (mobileNo) {
 
-            const isMobileExist = await CardLead.findOne({ _id: { $ne: cardId }, $or: [{ mobileNo }, { alternateMobileNo: mobileNo }] });
+        const normalizedMobile = mobileNo?.trim();
 
-            if (isMobileExist) {
-                return res.status(409).json({ success: false, message: "MobileNo already exists.." });
+        const mobileRegex = /^[6-9]\d{9}$/;
+
+        if (!normalizedMobile || !mobileRegex.test(normalizedMobile)) {
+            return res.status(400).json({
+                success: false,
+                message: "A valid 10-digit mobile number is required."
+            });
+        }
+
+        const normalizedAlternateMobile = alternateMobileNo?.trim() || "";
+
+        if (
+            normalizedAlternateMobile &&
+            !mobileRegex.test(normalizedAlternateMobile)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid alternate mobile number."
+            });
+        }
+
+        if (
+            normalizedAlternateMobile &&
+            normalizedAlternateMobile === normalizedMobile
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Primary and alternate mobile numbers cannot be the same."
+            });
+        }
+
+        const normalizedEmail = email?.trim().toLowerCase() || "";
+
+        if (normalizedEmail) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailRegex.test(normalizedEmail)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid email address."
+                });
             }
-            updateLead.mobileNo = mobileNo;
-
         }
-        if (alternateMobileNo) {
-            const mobileNoRegx = /^[6-9]\d{9}$/;
-            if (!mobileNoRegx.test(alternateMobileNo)) return res.status(400).json({ success: false, message: "Invalid Alternate MobileNo.." });
 
-            const isMobileExist = await CardLead.findOne({ _id: { $ne: cardId }, $or: [{ alternateMobileNo }, { mobileNo: alternateMobileNo }] });
+        // const mobileExist = await CardLead.findOne({
+        //     _id: { $ne: cardId },
+        //     $or: [
+        //         { mobileNo: normalizedMobile },
+        //         { alternateMobileNo: normalizedMobile },
+        //         ...(normalizedAlternateMobile
+        //             ? [
+        //                 { mobileNo: normalizedAlternateMobile },
+        //                 { alternateMobileNo: normalizedAlternateMobile }
+        //             ]
+        //             : [])
+        //     ]
+        // });
 
-            if (isMobileExist) {
-                return res.status(409).json({ success: false, message: "Alternate mobile number already exists.." });
-            }
-            updateLead.alternateMobileNo = alternateMobileNo;
 
+        const updateLead = {};
+        const unsetLead = {};
+
+        if (customerName !== undefined) {
+            updateLead.customerName = customerName;
         }
-        updateLead.contactType = contactType;
+
+        if (companyName !== undefined) {
+            updateLead.companyName = companyName;
+        }
+
+        updateLead.city = city.trim();
+
+        if (requirement !== undefined) {
+            updateLead.requirement = requirement;
+        }
+
+        if (state !== undefined) {
+            updateLead.state = state;
+        }
+
+        updateLead.mobileNo = normalizedMobile;
+
+        if (normalizedAlternateMobile) {
+            updateLead.alternateMobileNo = normalizedAlternateMobile;
+        } else if (alternateMobileNo !== undefined) {
+            unsetLead.alternateMobileNo = 1;
+        }
+
+        if (normalizedEmail) {
+            updateLead.email = normalizedEmail;
+        } else if (email !== undefined) {
+            unsetLead.email = 1;
+        }
+
+        if (contactType !== undefined) {
+            updateLead.contactType = contactType;
+        }
+
+        const updateOperations = {};
+
+        if (Object.keys(updateLead).length) {
+            updateOperations.$set = updateLead;
+        }
+
+        if (Object.keys(unsetLead).length) {
+            updateOperations.$unset = unsetLead;
+        }
 
         const update = await CardLead.findOneAndUpdate(
-            { _id: cardId, executiveUserId: userId, status: 'un-verified' },
-            { $set: updateLead },
-            { returnDocument: 'after', runValidators: true }
+            {
+                _id: cardId,
+                executiveUserId: userId,
+                status: "un-verified"
+            },
+            updateOperations,
+            {
+                new: true,
+                runValidators: true
+            }
         );
 
-        if (!update) return res.status(404).json({ success: false, message: "Card not found or cannot be edited." });
+        if (!update) {
+            return res.status(404).json({
+                success: false,
+                message: "Card not found or cannot be edited."
+            });
+        }
 
-        return res.status(200).json({ success: true, message: "Lead Updated successfully..", update });
-
-
+        return res.status(200).json({
+            success: true,
+            message: "Lead updated successfully.",
+            update
+        });
     } catch (er) {
-        return res.status(500).json({ success: false, message: er?.message });
+        if (er?.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "Email or mobile number already exists."
+            });
+        }
+
+        console.error("updateCard error:", er);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error."
+        });
     }
-}
+};
+
 
 export const bulkUpload = async (req, res) => {
     try {
@@ -317,6 +544,7 @@ export const getCardHistory = async (req, res) => {
                 status: i?.status,
                 rejectionReason: i?.rejectionReason,
                 city: i?.city,
+                state: i?.state,
                 createdAt: new Date(i?.createdAt),
                 contactType: i?.contactType
             }
@@ -368,7 +596,6 @@ export const scanCard = async (req, res) => {
     }
 };
 
-
 export const downloadExecutiveLeads = async (req, res) => {
     try {
         let { userId } = req.user;
@@ -400,6 +627,7 @@ export const downloadExecutiveLeads = async (req, res) => {
                     customerName: 1,
                     companyName: 1,
                     city: 1,
+                    state: 1,
                     requirement: 1,
                     email: 1,
                     mobileNo: 1,
@@ -415,10 +643,11 @@ export const downloadExecutiveLeads = async (req, res) => {
             return {
                 executiveName: i?.executiveName,
                 customerName: i?.customerName || 'N/A',
-                city: i.city,
+                city: i?.city,
+                state: i?.state,
                 requirement: i?.requirement || 'N/A',
                 mobileNo: i?.mobileNo,
-                alternateMobileNo: i?.alternateMobileNo||'N/A',
+                alternateMobileNo: i?.alternateMobileNo || 'N/A',
                 companyName: i?.companyName || 'N/A',
                 createdAt: new Date(i?.createdAt),
                 contactType: i?.contactType

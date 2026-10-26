@@ -132,6 +132,7 @@ const Verified = () => {
                 <th className="px-5 py-4 font-semibold">Customer.Type</th>
                 <th className="px-5 py-4 font-semibold">Company</th>
                 <th className="px-5 py-4 font-semibold">City</th>
+                <th className="px-5 py-4 font-semibold">State</th>
                 <th className="px-5 py-4 font-semibold">Mobile</th>
                 <th className="px-5 py-4 font-semibold">alternate.Mobile</th>
                 <th className="px-5 py-4 font-semibold">Email</th>
@@ -181,6 +182,9 @@ const Verified = () => {
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {lead.city || "—"}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {lead.state || "—"}
                     </td>
                     <td className="px-5 py-4 text-slate-600">
                       {lead.mobileNo || "—"}

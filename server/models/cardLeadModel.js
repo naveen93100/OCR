@@ -28,6 +28,10 @@ const cardLeadSchema = mongoose.Schema({
         type: String,
         trim: true,
     },
+    state: {
+        type: String,
+        trim: true
+    },
     alternateMobileNo: {
         type: String,
         trim: true,
@@ -36,7 +40,7 @@ const cardLeadSchema = mongoose.Schema({
     email: {
         type: String,
         trim: true,
-        default: ""
+        default: undefined
     },
     requirement: {
         type: String,

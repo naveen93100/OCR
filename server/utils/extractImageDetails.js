@@ -19,6 +19,7 @@ Extract the following information from the image:
 - customerName
 - companyName
 - city
+- state
 - requirement
 - email
 - mobileno
@@ -30,11 +31,20 @@ Return only valid JSON in exactly this format:
     "customerName": "",
     "companyName": "",
     "city": "",
+    "state": "",
     "requirement": "",
     "email": "",
     "mobileno": "",
     "alternateMobileNo": ""
 }
+
+Card selection rules:
+- The image may contain more than one card, or show parts of other cards at the edges.
+- Extract details only from the single card that is centered in the image and fills most of it.
+- Ignore any other card, including cards that are partially visible above, below, or beside the centered card.
+- Never combine or mix details from different cards.
+- Ignore text that is cut off at the edges of the image and clearly belongs to a different card.
+- If you cannot tell which card is the centered one, return an empty string for every field.
 
 General rules:
 - If a field is missing or cannot be read reliably, return an empty string.
@@ -43,6 +53,13 @@ General rules:
 - Carefully read both printed and handwritten text.
 - Return all extracted values as strings.
 - Return only valid JSON without explanation or markdown.
+
+State extraction rules:
+- Extract the state only if it is written on the card, usually in the address or next to the city or pincode.
+- Do not infer the state from the city, pincode, or phone number.
+- If the state is written as an abbreviation (for example "UP", "MH", "HR"), return it exactly as written.
+- If no state is written, return an empty string.
+- Do not put a country name in the state field.
 
 Mobile number extraction rules:
 - Carefully inspect the area labeled "Phone No.", "Mobile No.", or similar.

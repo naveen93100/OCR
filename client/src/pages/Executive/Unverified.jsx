@@ -32,6 +32,7 @@ const Unverified = () => {
     customerName: "",
     companyName: "",
     city: "",
+    state: "",
     requirement: "",
     email: "",
     mobileNo: "",
@@ -87,6 +88,7 @@ const Unverified = () => {
       customerName: lead.customerName || "",
       companyName: lead.companyName || "",
       city: lead.city || "",
+      state: lead.state || "",
       requirement: lead.requirement || "",
       email: lead.email || "",
       mobileNo: lead.mobileNo || lead.mobileno || "",
@@ -121,6 +123,7 @@ const Unverified = () => {
           customerName: formData.customerName,
           companyName: formData.companyName,
           city: formData.city,
+          state: formData.state,
           requirement: formData.requirement,
           email: formData.email,
           mobileNo: formData.mobileNo,
@@ -261,6 +264,7 @@ const Unverified = () => {
                 <th className="px-5 py-4 font-semibold">contact.Type</th>
                 <th className="px-5 py-4 font-semibold">Company</th>
                 <th className="px-5 py-4 font-semibold">City</th>
+                <th className="px-5 py-4 font-semibold">State</th>
                 <th className="px-5 py-4 font-semibold">Mobile</th>
                 <th className="px-5 py-4 font-semibold text-xs">alternate.mobile</th>
                 <th className="px-5 py-4 font-semibold">Email</th>
@@ -314,6 +318,9 @@ const Unverified = () => {
 
                     <td className="px-5 py-4 text-slate-600">
                       {lead.city || "—"}
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      {lead.state || "—"}
                     </td>
 
                     <td className="px-5 py-4 text-slate-600">
@@ -461,7 +468,7 @@ const Unverified = () => {
                     value={formData.customerName}
                     onChange={handleFormChange}
                     className={inputClass}
-                    required
+                    // required
                   />
                 </label>
 
@@ -484,6 +491,19 @@ const Unverified = () => {
                   <input
                     name="city"
                     value={formData.city}
+                    onChange={handleFormChange}
+                    className={inputClass}
+                    required
+                  />
+                </label>
+
+                <label className="space-y-1.5">
+                  <span className="text-sm font-medium text-slate-700">
+                    State
+                  </span>
+                  <input
+                    name="state"
+                    value={formData.state}
                     onChange={handleFormChange}
                     className={inputClass}
                     required
@@ -687,6 +707,7 @@ const Unverified = () => {
                   <p><strong>Name:</strong> {viewingLead.customerName || "—"}</p>
                   <p><strong>Company:</strong> {viewingLead.companyName || "—"}</p>
                   <p><strong>City:</strong> {viewingLead.city || "—"}</p>
+                  <p><strong>State:</strong> {viewingLead.state || "—"}</p>
                   <p><strong>Email:</strong> {viewingLead.email || "—"}</p>
                   <p><strong>Mobile:</strong> {viewingLead.mobileNo || "—"}</p>
                   <p><strong>Alternate Mobile:</strong> {viewingLead.alternateMobileNo || "—"}</p>

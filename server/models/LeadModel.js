@@ -21,6 +21,10 @@ const leadSchema = mongoose.Schema(
             trim: true,
             required: true,
         },
+        state: {
+            type: String,
+            trim: true
+        },
         requirement: {
             type: String,
             trim: true,
@@ -29,13 +33,13 @@ const leadSchema = mongoose.Schema(
         email: {
             type: String,
             trim: true,
-            unique: true,
-            default: ""
+            // unique: true,
+            default: undefined
         },
         mobileNo: {
             type: String,
             trim: true,
-            unique: true,
+            // unique: true,
         },
         contactType: {
             type: String,

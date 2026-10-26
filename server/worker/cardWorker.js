@@ -42,6 +42,7 @@ export const worker = new Worker('extract', async (job) => {
       customerName: stringExtract.customerName,
       companyName: stringExtract.companyName,
       city: stringExtract.city,
+      state:stringExtract?.state,
       requirement: stringExtract.requirement,
       email: stringExtract?.email?.trim()?.toLowerCase() || "",
       mobileNo: cleanMobileNumber(stringExtract.mobileno),
@@ -49,44 +50,45 @@ export const worker = new Worker('extract', async (job) => {
       status: 'un-verified',
     };
 
-    let duplicate = [];
+    // let duplicate = [];
 
-    if (update.email) {
-      duplicate.push({ email: update.email })
-    }
+    // if (update.email) {
+    //   duplicate.push({ email: update.email })
+    // }
 
-    if (update.mobileNo) {
-      duplicate.push(
-        { mobileNo: update.mobileNo },
-        { alternateMobileNo: update.mobileNo }
-      );
-    }
-    if (update.alternateMobileNo) {
-      duplicate.push(
-        { mobileNo: update.alternateMobileNo },
-        { alternateMobileNo: update.alternateMobileNo }
-      );
-    }
+    // if (update.mobileNo) {
+    //   duplicate.push(
+    //     { mobileNo: update.mobileNo },
+    //     { alternateMobileNo: update.mobileNo }
+    //   );
+    // }
 
-    if (duplicate.length > 0) {
+    // if (update.alternateMobileNo) {
+    //   duplicate.push(
+    //     { mobileNo: update.alternateMobileNo },
+    //     { alternateMobileNo: update.alternateMobileNo }
+    //   );
+    // }
 
-      let isExist = await CardLead.findOne({
-        _id: { $ne: cardId }, $or: duplicate
-      });
+    // if (duplicate.length > 0) {
 
-      if (isExist) {
-        await CardLead.findOneAndUpdate(
-          { _id: cardId, status: 'pending' },
-          { $set: { ...update, status: 'rejected', rejectionReason: 'Duplicate Card Details found...' } },
-          { runValidators: true }
-        );
+    //   let isExist = await CardLead.findOne({
+    //     _id: { $ne: cardId }, $or: duplicate
+    //   });
 
-        return {
-          cardId: job.data.cardId,
-          extractedData: stringExtract
-        }
-      }
-    }
+    //   if (isExist) {
+    //     await CardLead.findOneAndUpdate(
+    //       { _id: cardId, status: 'pending' },
+    //       { $set: { ...update, status: 'rejected', rejectionReason: 'Duplicate Card Details found...' } },
+    //       { runValidators: true }
+    //     );
+
+    //     return {
+    //       cardId: job.data.cardId,
+    //       extractedData: stringExtract
+    //     }
+    //   }
+    // }
 
     await CardLead.findOneAndUpdate(
       { _id: cardId, status: 'pending' },
