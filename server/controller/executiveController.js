@@ -135,6 +135,7 @@ export const updateCardStatus = async (req, res) => {
 
             if(parsedQuantity!==0){   
                 let sendData = await sendEnquiry(updated);
+                console.log(sendData);
             }
 
             await Lead.create({

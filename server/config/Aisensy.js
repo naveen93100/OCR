@@ -24,6 +24,8 @@ export const sendVerificationWhatsApp = async (mobileNo) => {
 
     const responseText = await response.text();
 
+    console.log(process.env.AISENSY_API_KEY)
+    console.log(process.env.AISENSY_CAMPAIGN_NAME)
     console.log("HTTP status:", response.status);
     console.log("AiSensy response:", responseText);
 
