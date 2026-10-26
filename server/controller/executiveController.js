@@ -133,8 +133,6 @@ export const updateCardStatus = async (req, res) => {
 
               let sendData=await sendEnquiry(updated);
 
-              console.log(sendData);
-
             await Lead.create({
                 customerName: updated?.customerName,
                 companyName: updated?.companyName,
@@ -148,7 +146,7 @@ export const updateCardStatus = async (req, res) => {
             });
 
             if (updated?.mobileNo && updated?.contactType === 'non-supplier') {
-                await sendVerificationWhatsApp(updated?.mobileNo)
+                await sendVerificationWhatsApp(updated?.mobileNo);
                 console.log("send message.");
             }
 
