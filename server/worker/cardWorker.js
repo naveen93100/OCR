@@ -66,7 +66,6 @@ export const worker = new Worker('extract', async (job) => {
         { mobileNo: update.alternateMobileNo },
         { alternateMobileNo: update.alternateMobileNo }
       );
-
     }
 
     if (duplicate.length > 0) {
