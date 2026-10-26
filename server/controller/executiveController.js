@@ -130,8 +130,12 @@ export const updateCardStatus = async (req, res) => {
             let updated = await CardLead.findByIdAndUpdate(cardId, { $set: { status, rejectionReason } }, { new: true, runValidators: true });
 
             // send data to crm
+            const quantity = String(updated.requirement || "").match(/\d+(?:\.\d+)?/);
+            const parsedQuantity = quantity ? Number(quantity[0]) : 0;
 
-              let sendData=await sendEnquiry(updated);
+            if(parsedQuantity!==0){   
+                let sendData = await sendEnquiry(updated);
+            }
 
             await Lead.create({
                 customerName: updated?.customerName,
