@@ -13,7 +13,7 @@ export const sendEnquiry = async (lead) => {
         customerId: "",
         customerName: lead?.customerName || "",
         email: lead.email?.trim() || "",
-        enquiryType: "REI cards",
+        enquiryType: "REI-2026",
         mobileNumber: lead?.mobileNo || "",
         moduleType: [
             { moduleType: "Mono-PERC", monobi: "Monofacial", wattage: "530 Wp", type: "DCR" }
